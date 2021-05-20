@@ -80,7 +80,7 @@ namespace trajectory_based_nav
   class TrajectorySource
   {
   public:
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){};
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; };
     virtual bool update(const nav_msgs::Odometry& odom, const TypedTrajectoryWrapper<T>& current_trajectory)=0;
     virtual bool hasMore() const =0;
     virtual typename TypedTrajectoryWrapper<T>::Ptr getNext()=0;
@@ -122,7 +122,7 @@ namespace trajectory_based_nav
     ros::Duration max_replan_period_;
     
   public:
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){};
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; };
     
     virtual void setTrajectory(TrajectoryWrapper::Ptr traj) { current_trajectory_ = traj; }
     virtual bool shouldReplan(const nav_msgs::Odometry& odom, TrajectoryWrapper::Ptr traj)=0;
@@ -134,7 +134,7 @@ namespace trajectory_based_nav
   class TerminationCriteria
   {
   public:
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){};
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; };
     virtual bool shouldTerminate(const nav_msgs::Odometry& odom)=0;
     
     using Ptr=std::shared_ptr<TerminationCriteria>;
@@ -165,9 +165,9 @@ namespace trajectory_based_nav
   public:
     virtual bool scoreTrajectory(TrajectoryWrapper::Ptr traj)=0;
     
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){};
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; };
     
-    virtual bool update(const nav_msgs::Odometry& odom) {}
+    virtual bool update(const nav_msgs::Odometry& odom) { return true; }
     using Ptr=std::shared_ptr<TrajectoryScoring>;
   };
   
@@ -177,7 +177,7 @@ namespace trajectory_based_nav
     std::shared_ptr<pips_trajectory_testing::PipsCCWrapper> cc_wrapper_;
     
   public:
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){};
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; };
     
     virtual bool update(const nav_msgs::Odometry& odom);
     virtual bool verifyTrajectory(TrajectoryWrapper::Ptr traj)=0;
@@ -196,7 +196,7 @@ namespace trajectory_based_nav
     std::shared_ptr<pips_trajectory_testing::PipsCCWrapper> cc_wrapper_; //just temporary
     
   public:
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){};
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; };
     
     virtual bool update(const nav_msgs::Odometry& odom)=0;
     

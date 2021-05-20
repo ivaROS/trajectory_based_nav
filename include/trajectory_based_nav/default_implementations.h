@@ -30,6 +30,35 @@ namespace trajectory_based_nav
     //     }
   };
   
+  
+  
+/*  
+  class BasicTrajectoryVerifier : public trajectory_based_nav::TrajectoryVerifier
+  {
+  protected:
+    ros::Duration min_ttc_;
+    std::string name_;
+    
+  public:
+    
+    BasicTrajectoryVerifier(std::string name="basic_trajectory_verifier") : name_(name) {}
+    
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
+    {
+      //min_ttc_ = ros::Duration(3);
+      
+      auto mnh = ros::NodeHandle(pnh, name_);
+      
+      double min_ttc=3;
+      mnh.getParam("min_ttc", min_ttc);
+      mnh.setParam("min_ttc", min_ttc);
+      
+      min_ttc_ = ros::Duration(min_ttc);
+    }
+  
+  */
+  
+  
   class BasicTrajectoryVerifier : public trajectory_based_nav::TrajectoryVerifier
   {
   protected:
@@ -40,6 +69,7 @@ namespace trajectory_based_nav
     virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
     {
       min_ttc_ = ros::Duration(3);
+      return true;
     }
     
     virtual bool verifyTrajectory(TrajectoryWrapper::Ptr traj)
@@ -103,6 +133,8 @@ namespace trajectory_based_nav
       mnh.setParam("max_replan_period", max_replan_period);
       
       max_replan_period_ = ros::Duration(max_replan_period);  //TODO: use ros parameters
+      
+      return true;
     }
     
     virtual bool shouldReplan(const nav_msgs::Odometry& odom, TrajectoryWrapper::Ptr traj)

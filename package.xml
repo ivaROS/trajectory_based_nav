@@ -61,7 +61,7 @@
   <depend>tf2_utils</depend>
   <depend>nav_msgs</depend>
   <depend>pips_trajectory_testing</depend>
-  
+  <depend>benchmarking_tools</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
