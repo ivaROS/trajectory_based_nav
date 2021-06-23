@@ -30,6 +30,9 @@ namespace trajectory_based_nav
   
   class GlobalGoalState
   {
+  public:
+    using Ptr = std::shared_ptr<GlobalGoalState>;
+    
   protected:
     geometry_msgs::PoseStamped::ConstPtr goal_pose_;
     bool have_goal_=false, have_new_goal_=false;
@@ -48,6 +51,7 @@ namespace trajectory_based_nav
     
     tf2_utils::TransformManager tfm_;
     
+    //TODO: store new goals but don't update current goal until 'update' run?
     virtual void GoalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal)
     {
       geometry_msgs::PoseStamped transformed_goal;
@@ -56,14 +60,14 @@ namespace trajectory_based_nav
       ROS_INFO_STREAM("Received goal!");
       
       bool goal_valid = false;
-      try
+      try //This may not be necessary due to the TF MessageFilter
       {
         transformed_goal = tfm_.getBuffer()->transform(*goal, planning_frame_id_);  //This works, but if transform is needed again later, best to hold onto it
         //goal_to_planning_transform = tfm_.getBuffer()->lookupTransform(planning_frame_id_, goal->header.frame_id, goal->header.stamp);        
         goal_valid = true;
       }
       catch (tf2::TransformException &ex) {
-        ROS_WARN_NAMED("global_goal_state", "Unable to transform trajectory: %s",ex.what());
+        ROS_WARN_NAMED("global_goal_state", "Unable to transform new goal into planning frame!: %s",ex.what());
         //If we know a new goal was sent but we were unable to transform it, should probably stop what we're doing
       }
 
@@ -76,6 +80,7 @@ namespace trajectory_based_nav
         //goal_to_planning_transform_ = goal_to_planning_transform;
         
         goal_pose_ = boost::make_shared<geometry_msgs::PoseStamped>(transformed_goal);
+        //TODO: allow callbacks to be registered
       }
       else
       {
@@ -90,6 +95,10 @@ namespace trajectory_based_nav
     virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
     {
       tfm_ = tfm;
+      /* TODO: Need to ensure that consistent coordinate frames are being used. Either:
+       * 1. Always plan in the odometry frame and set it automatically based on first message received.
+       * 2. Transform poses to the specified planning frame whenever needed.
+       */
       pips::utils::searchParam(pnh, "planning_frame_id", planning_frame_id_, "odom");
       
       goal_sub_.subscribe(nh, "/move_base_simple/goal", 1);
@@ -97,6 +106,16 @@ namespace trajectory_based_nav
       goal_filter_->registerCallback(boost::bind(&GlobalGoalState::GoalCallback, this, _1));
       
       return true;
+    }
+    
+//     virtual bool update(const nav_msgs::Odomeetry& odom)
+//     {
+//       return true;
+//     }
+    
+    virtual message_filters::SimpleFilter<geometry_msgs::PoseStamped>& getGoalSource()
+    {
+      return goal_sub_;
     }
     
     virtual bool hasGoal()
@@ -111,6 +130,11 @@ namespace trajectory_based_nav
       return have_goal_ && have_new_goal_;
     }
     
+    virtual void setNewGoal(const geometry_msgs::PoseStamped::ConstPtr& goal)
+    {
+      
+    }
+    
     virtual geometry_msgs::Pose getGoal()
     {
       Lock lock(goal_mutex_);
@@ -119,6 +143,14 @@ namespace trajectory_based_nav
       auto pose = goal_pose_->pose;
       pose.position.z =1.2;
       return pose;
+    }
+    
+    virtual geometry_msgs::PoseStamped getGoalStamped()
+    {
+      Lock lock(goal_mutex_);
+      
+      have_new_goal_ = false;
+      return *goal_pose_;
     }
     
     //virtual geometry_msgs::TransformStamped get
