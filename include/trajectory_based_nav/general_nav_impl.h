@@ -154,6 +154,7 @@ namespace trajectory_based_nav
         if(remaining_traj->getPoseArray().poses.size()>0)
         {
           lp_->getTrajectoryScoring()->scoreTrajectory(remaining_traj);
+          candidate_trajs.push_back(remaining_traj);
         }
         
         if(viz_pub_.getNumSubscribers()>0)
@@ -245,10 +246,18 @@ namespace trajectory_based_nav
           
           if(selected_traj)
           {
-            typename T::ConstPtr trajectory_msg = selected_traj->getTrajectoryMsg();
-            lp_->getTrajectoryController()->setTrajectory(trajectory_msg);
-            
-            selected_traj_pub_.publish(selected_traj->getPoseArray());
+            if(selected_traj != remaining_traj)
+            {
+              typename T::ConstPtr trajectory_msg = selected_traj->getTrajectoryMsg();
+              lp_->getTrajectoryController()->setTrajectory(trajectory_msg);
+              
+              selected_traj_pub_.publish(selected_traj->getPoseArray());
+              ROS_INFO_STREAM("Selected new trajectory!");
+            }
+            else
+            {
+              ROS_INFO_STREAM("Continuing on previous trajectory.");
+            }
           }
           else
           {
