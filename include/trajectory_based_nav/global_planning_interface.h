@@ -43,6 +43,9 @@ namespace trajectory_based_nav
     virtual std::string getPlanningFrameID()=0;
     
     virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm) {};
+    
+    virtual bool getRobotPose(geometry_msgs::PoseStamped& start)=0;
+    
   };
   
   
@@ -58,12 +61,24 @@ namespace trajectory_based_nav
     
     CostmapBasedGlobalPlannerInterface():
       tf_(),
-      costmap_("costmap", tf_)
+      costmap_("global_costmap", tf_)
       {}
       
     virtual std::string getPlanningFrameID()
     {
       return costmap_.getGlobalFrameID();
+    }
+    
+    virtual bool getRobotPose(geometry_msgs::PoseStamped& start)
+    {
+      //I'd still rather use odometry msg, but this may be easier for now
+      tf::Stamped<tf::Pose> global_pose;
+      if(!costmap_.getRobotPose(global_pose)) {
+        ROS_WARN("Unable to get starting pose of robot, unable to create global plan");
+        return false;
+      }
+      
+      tf::poseStampedTFToMsg(global_pose, start);
     }
   };
   
@@ -120,13 +135,18 @@ namespace trajectory_based_nav
     //TODO: Low priority, but if planning in progress when new goal comes in, could start new thread to service it and kill of old thread
     virtual void goalCB(const geometry_msgs::PoseStamped::ConstPtr& goal)
     {
+      ROS_INFO_STREAM("[GlobalPlanningInterface] received new goal: " << *goal);
       geometry_msgs::PoseStamped transformed_goal = tfm_.getBuffer()->transform(*goal, getPlanningFrameID());
       clearPlan();
       setNewGoal(transformed_goal);
+      triggerPlanning();
     }
     
     //NOTE: Not sure if this is necessary or not
-    virtual bool update(const nav_msgs::Odometry& odom)=0;
+    virtual bool update(const nav_msgs::Odometry& odom)
+    {
+      return true;
+    };
     
     virtual bool triggerPlanning()=0;
     
@@ -235,17 +255,18 @@ namespace trajectory_based_nav
     }
     
     //TODO: Since global planning occurs asynchronously with everything else, may be better to get current robot pose asynchronously as well
-    virtual bool update(const nav_msgs::Odometry& odom) override
-    {
-      PlanningLock lock(planning_mutex_);  //When planning_mutex_ released, current_plan_ already updated
-      
-      odom_ = odom;
-      
-      return (bool)current_plan_;
-    }
+//     virtual bool update(const nav_msgs::Odometry& odom) override
+//     {
+//       PlanningLock lock(planning_mutex_);  //When planning_mutex_ released, current_plan_ already updated
+//       
+//       odom_ = odom;
+//       
+//       return (bool)current_plan_;
+//     }
     
     virtual bool triggerPlanning() override
     {
+      ROS_INFO("Triggering planning!");
       run_planner_ = true;
       planner_cond_.notify_one();
     }
@@ -254,8 +275,9 @@ namespace trajectory_based_nav
     //Based heavily on MoveBase::planThread() https://github.com/ros-planning/navigation/blob/e2e9482695f11d8d30326480e3283967d94d83f5/move_base/src/move_base.cpp#L559
     void planningThread()
     {
-      bool wait_for_wake = false;
+      bool wait_for_wake = true;
       
+      ROS_INFO("Planning thread started!");
       
       boost::unique_lock<boost::recursive_mutex> lock(planning_mutex_);
       while(nh_.ok()){
@@ -268,25 +290,38 @@ namespace trajectory_based_nav
         }
         ros::Time start_time = ros::Time::now();
         
+        ROS_INFO("Planning...");
+        
         //time to plan! get a copy of the goal and unlock the mutex
         auto goal = *goal_pose_;
-        auto current_odom = odom_;
+        
         lock.unlock();
         ROS_DEBUG_NAMED("move_base_plan_thread","Planning...");
         
+        
+        
+        
+        
+        
         geometry_msgs::PoseStamped current_pose;
-        current_pose.header = current_odom.header;
-        current_pose.pose = current_odom.pose.pose;
-        
-        planner_result_t result = planner_->plan(current_pose, goal);
-        
+        if(planner_->getRobotPose(current_pose))
         {
-          Lock lock(current_plan_mutex_);
-          current_plan_ = std::make_shared<planner_result_t>(result);
+          //current_pose.header = current_odom.header;
+          //current_pose.pose = current_odom.pose.pose;
+          
+          planner_result_t result = planner_->plan(current_pose, goal);
+          
+          {
+            Lock lock(current_plan_mutex_);
+            current_plan_ = std::make_shared<planner_result_t>(result);
+          }
+          ROS_INFO("Updated 'current_plan_'");
+          //run planner
+          //bool gotPlan = n.ok() && makePlan(temp_goal, *planner_plan_);
         }
-        //run planner
-        //bool gotPlan = n.ok() && makePlan(temp_goal, *planner_plan_);
         
+        lock.lock();
+        wait_for_wake = true;
       }
       
     }
