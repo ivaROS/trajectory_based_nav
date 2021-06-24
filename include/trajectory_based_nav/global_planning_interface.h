@@ -79,6 +79,7 @@ namespace trajectory_based_nav
       }
       
       tf::poseStampedTFToMsg(global_pose, start);
+      return true;
     }
   };
   
@@ -277,20 +278,22 @@ namespace trajectory_based_nav
     {
       bool wait_for_wake = true;
       
-      ROS_INFO("Planning thread started!");
+      ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Planning thread started!");
       
       boost::unique_lock<boost::recursive_mutex> lock(planning_mutex_);
       while(nh_.ok()){
         //check if we should run the planner (the mutex is locked)
         while(wait_for_wake || !run_planner_){
           //if we should not be running the planner then suspend this thread
+          ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Planner thread suspending...");
           ROS_DEBUG_NAMED("move_base_plan_thread","Planner thread is suspending");
           planner_cond_.wait(lock);
+          ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Planner thread woke up!");
           wait_for_wake = false;
         }
         ros::Time start_time = ros::Time::now();
         
-        ROS_INFO("Planning...");
+        ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Preparing to plan...");
         
         //time to plan! get a copy of the goal and unlock the mutex
         auto goal = *goal_pose_;
@@ -306,16 +309,18 @@ namespace trajectory_based_nav
         geometry_msgs::PoseStamped current_pose;
         if(planner_->getRobotPose(current_pose))
         {
+          ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Got robot pose, planning...");
+          
           //current_pose.header = current_odom.header;
           //current_pose.pose = current_odom.pose.pose;
           
           planner_result_t result = planner_->plan(current_pose, goal);
-          
+          ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Finished planning");
           {
             Lock lock(current_plan_mutex_);
             current_plan_ = std::make_shared<planner_result_t>(result);
           }
-          ROS_INFO("Updated 'current_plan_'");
+          ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Updated 'current_plan_'");
           //run planner
           //bool gotPlan = n.ok() && makePlan(temp_goal, *planner_plan_);
         }
