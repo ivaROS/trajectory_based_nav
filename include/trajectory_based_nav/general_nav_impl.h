@@ -149,13 +149,22 @@ namespace trajectory_based_nav
           evaluated_traj_pub_.publish(pose_arrays);
         }
         
-        std::sort(candidate_trajs.begin(), candidate_trajs.end(), customLess);
         
         if(remaining_traj->getPoseArray().poses.size()>0)
         {
-          lp_->getTrajectoryScoring()->scoreTrajectory(remaining_traj);
-          candidate_trajs.push_back(remaining_traj);
+          if(lp_->getTrajectoryScoring()->scoreTrajectory(remaining_traj))
+          {
+            candidate_trajs.push_back(remaining_traj);
+            ROS_INFO_STREAM("Current trajectory cost=" << remaining_traj->cost());
+          }
+          else
+          {
+            ROS_ERROR("Unable to score current trajectory!");
+          }
         }
+        
+        std::sort(candidate_trajs.begin(), candidate_trajs.end(), customLess);
+        
         
         if(viz_pub_.getNumSubscribers()>0)
         {
@@ -252,7 +261,7 @@ namespace trajectory_based_nav
               lp_->getTrajectoryController()->setTrajectory(trajectory_msg);
               
               selected_traj_pub_.publish(selected_traj->getPoseArray());
-              ROS_INFO_STREAM("Selected new trajectory!");
+              ROS_INFO_STREAM("Selected new trajectory! Trajectory cost=" << selected_traj->cost());
             }
             else
             {
@@ -268,9 +277,9 @@ namespace trajectory_based_nav
         
         auto t5 = ros::WallTime::now();
         
-        ROS_INFO_STREAM("Total: " << (t5-t0).toSec()*1000 << "ms, Replan logic: " << (t1-t01).toSec()*1000 << "ms, Init2: " << (t01-t0).toSec()*1000 << "ms, Generation: " << (t2-t1).toSec() * 1000 << "ms, Scoring: " <<  (t3-t2).toSec() * 1000 << "ms, Other: " <<  (t4-t3).toSec() * 1000 << "ms, Collision checking: " <<   (t5-t4).toSec() * 1000 << "ms");
+        ROS_INFO_STREAM_NAMED("timing","Total: " << (t5-t0).toSec()*1000 << "ms, Replan logic: " << (t1-t01).toSec()*1000 << "ms, Init2: " << (t01-t0).toSec()*1000 << "ms, Generation: " << (t2-t1).toSec() * 1000 << "ms, Scoring: " <<  (t3-t2).toSec() * 1000 << "ms, Other: " <<  (t4-t3).toSec() * 1000 << "ms, Collision checking: " <<   (t5-t4).toSec() * 1000 << "ms");
         
-        ROS_DEBUG_STREAM_NAMED("timing", "STATISTICS: {\"total_planning_time\":" << (ros::WallTime::now()-t0).toNSec() / 1e3 << ",\"planned\":true, \"num_collision_checked\":" << traj_count << ",\"generation_time\":" << (t2-t1).toNSec() / 1000 << ",\"scoring_time\":" << (t3-t2).toNSec()/1000 << ",\"verification_time\":" << (t5-t4).toNSec()/1000 << ",\"num_trajectories\":" << candidate_trajs.size() << "}");
+        ROS_DEBUG_STREAM_NAMED("timing.statistics", "STATISTICS: {\"total_planning_time\":" << (ros::WallTime::now()-t0).toNSec() / 1e3 << ",\"planned\":true, \"num_collision_checked\":" << traj_count << ",\"generation_time\":" << (t2-t1).toNSec() / 1000 << ",\"scoring_time\":" << (t3-t2).toNSec()/1000 << ",\"verification_time\":" << (t5-t4).toNSec()/1000 << ",\"num_trajectories\":" << candidate_trajs.size() << "}");
         
       }
       else
