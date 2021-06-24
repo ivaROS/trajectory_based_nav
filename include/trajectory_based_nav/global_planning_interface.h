@@ -42,7 +42,10 @@ namespace trajectory_based_nav
     
     virtual std::string getPlanningFrameID()=0;
     
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm) {};
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
+    { 
+      return true;
+    }
     
     virtual bool getRobotPose(geometry_msgs::PoseStamped& start)=0;
     
@@ -149,9 +152,9 @@ namespace trajectory_based_nav
       return true;
     };
     
-    virtual bool triggerPlanning()=0;
+    virtual void triggerPlanning()=0;
     
-    virtual bool triggerPlanning(const ros::TimerEvent& event)
+    virtual void triggerPlanning(const ros::TimerEvent& event)
     {
       return triggerPlanning();
     }
@@ -265,13 +268,17 @@ namespace trajectory_based_nav
 //       return (bool)current_plan_;
 //     }
     
-    virtual bool triggerPlanning() override
+    virtual void triggerPlanning() override
     {
       ROS_INFO("Triggering planning!");
       run_planner_ = true;
       planner_cond_.notify_one();
     }
     
+    virtual void triggerPlanning(const ros::TimerEvent& event) override
+    {
+      return triggerPlanning();
+    }
     
     //Based heavily on MoveBase::planThread() https://github.com/ros-planning/navigation/blob/e2e9482695f11d8d30326480e3283967d94d83f5/move_base/src/move_base.cpp#L559
     void planningThread()
@@ -295,34 +302,39 @@ namespace trajectory_based_nav
         
         ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Preparing to plan...");
         
-        //time to plan! get a copy of the goal and unlock the mutex
-        auto goal = *goal_pose_;
-        
-        lock.unlock();
-        ROS_DEBUG_NAMED("move_base_plan_thread","Planning...");
-        
-        
-        
-        
-        
-        
-        geometry_msgs::PoseStamped current_pose;
-        if(planner_->getRobotPose(current_pose))
+        if(goal_pose_)
         {
-          ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Got robot pose, planning...");
+            
+          //time to plan! get a copy of the goal and unlock the mutex
+          auto goal = *goal_pose_;
           
-          //current_pose.header = current_odom.header;
-          //current_pose.pose = current_odom.pose.pose;
-          
-          planner_result_t result = planner_->plan(current_pose, goal);
-          ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Finished planning");
+          lock.unlock();
+          ROS_DEBUG_NAMED("move_base_plan_thread","Planning...");
+
+          geometry_msgs::PoseStamped current_pose;
+          if(planner_->getRobotPose(current_pose))
           {
-            Lock lock(current_plan_mutex_);
-            current_plan_ = std::make_shared<planner_result_t>(result);
+            ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Got robot pose, planning...");
+            
+            //current_pose.header = current_odom.header;
+            //current_pose.pose = current_odom.pose.pose;
+            
+            planner_result_t result = planner_->plan(current_pose, goal);
+            ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Finished planning");
+            {
+              Lock lock(current_plan_mutex_);
+              current_plan_ = std::make_shared<planner_result_t>(result);
+            }
+            ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Updated 'current_plan_'");
+            //run planner
+            //bool gotPlan = n.ok() && makePlan(temp_goal, *planner_plan_);
           }
-          ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Updated 'current_plan_'");
-          //run planner
-          //bool gotPlan = n.ok() && makePlan(temp_goal, *planner_plan_);
+        }
+        else
+        {
+          lock.unlock();
+          
+          ROS_WARN_STREAM_NAMED(name_, "[" << name_ << "] No goal!");
         }
         
         lock.lock();
