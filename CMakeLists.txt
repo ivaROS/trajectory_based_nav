@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(trajectory_based_nav)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++11 -Wall)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -128,6 +128,8 @@ add_library(${PROJECT_NAME}
   src/interfaces.cpp
 )
 
+#add_compile_options(${PROJECT_NAME} PUBLIC -Wall)
+
 # Add cmake target dependencies of the library
 # as an example, code may need to be generated before libraries
 # either from message generation or dynamic reconfigure
@@ -152,6 +154,15 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
+
+
+add_executable(test_behavior_manager src/tests/behavior_manager_test_node.cpp)
+
+target_link_libraries(test_behavior_manager
+  ${catkin_LIBRARIES}
+)
+
+
 
 #############
 ## Install ##

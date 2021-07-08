@@ -1,10 +1,15 @@
 #include <trajectory_based_nav/behavior_manager.h>
 
 
-using namespace trajectory_based_planning;
+using namespace trajectory_based_nav;
 
 class TestBehavior : public Behavior
 {
+public:
+    TestBehavior(std::string name):
+        Behavior(name)
+        {}
+        
     virtual bool start() override
     {
         ROS_INFO_STREAM("[" << name_ << "] started!");
@@ -25,8 +30,9 @@ class TestBehavior : public Behavior
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "behavior_manager_test");
+  ros::Time::init();
   
-  using namespace trajectory_based_planning;
+  using namespace trajectory_based_nav;
   BehaviorManager m("manager");
   
   auto b1 = std::make_shared<TestBehavior>("b1");
@@ -36,7 +42,7 @@ int main(int argc, char** argv) {
   BehaviorRequest r1(b1, true);
   m.addRequest(r1);
   
-  ros::Time::sleep(1000);
+  ros::Duration(1.0).sleep();
   
   BehaviorRequest r2(b1, false);
   BehaviorRequest r3(b2, true);

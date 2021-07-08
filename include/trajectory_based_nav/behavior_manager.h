@@ -2,7 +2,9 @@
 #define TRAJECTORY_BASED_NAV_BEHAVIOR_MANAGER_H
 
 #include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
+//#include <boost/thread/recursive_mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/thread.hpp>
 
 #include <ros/ros.h>
 #include <deque>
@@ -88,13 +90,15 @@ public:
         return is_active_;
     }
     
-    virtual bool start() {}
-    virtual bool stop() {}
+    const std::string& name() {return name_;}
+    
+protected:
+    virtual bool start() {return true;}
+    virtual bool stop() {return true;}
     
     //virtual void pause() {}
     //virtual void resume() {}
     
-    const std::string& name() {return name_;}
     
 protected:
     using Mutex = boost::mutex;
@@ -110,7 +114,7 @@ public:
     using Ptr = std::shared_ptr<Behavior>;
 };
 
-
+/*
 // Allows safely activating/deactivating the behavior in a threadsafe manner
 template <typename T>
 class BehaviorInterface
@@ -281,7 +285,7 @@ class PreemptingBehavior : public Behavior
     
     
     
-};
+};*/
 
 
 
@@ -298,7 +302,7 @@ struct BehaviorRequest
     bool should_be_active;
 };
 
-
+/*
 class ThreadSafeDeque
 {
 public:
@@ -315,6 +319,9 @@ public:
     }
     
     void addRequest(BehaviorRequest& request)
+    {
+        //TODO: finish?
+    }
     
 protected:
     std::deque<BehaviorRequest> requests_;
@@ -322,29 +329,30 @@ protected:
     using Mutex = boost::mutex;    
     using Lock = boost::scoped_lock<Mutex>;
     Mutex request_mutex_;
-};
+};*/
 
 
 class BehaviorManager
 {
+public:
     
     BehaviorManager(std::string name):
         name_(name)
     {
-        monitor_thread_ = std::make_shared<boost::thread>(boost::bind(&BehaviorManager<T>::monitorThread, this));
+        requests_thread_ = std::make_shared<boost::thread>(boost::bind(&BehaviorManager::requestsThread, this));
         
     }
     
     ~BehaviorManager()
     {
-        monitor_thread_->interrupt();
-        monitor_thread_->join();
+        requests_thread_->interrupt();
+        requests_thread_->join();
     }
     
     bool addRequest(BehaviorRequest request)
     {
         std::vector<BehaviorRequest> requests {request};
-        addRequests(requests);
+        return addRequests(requests);
     }
     
     bool addRequests(const std::vector<BehaviorRequest>& requests)
@@ -352,9 +360,11 @@ class BehaviorManager
         ScopedLock lock(request_list_mutex_);
         requests_.insert(requests_.end(), requests.begin(), requests.end());
         request_cond_.notify_one();
+        return true;
     }
     
-    void behaviorThread()
+protected:
+    void requestsThread()
     {
         /* this thread is responsible for actually changing states?
          * If a behavior finishes/fails, it calls ?(pause?)/deactivate?
@@ -413,15 +423,17 @@ class BehaviorManager
             while(requests_.empty())
             {
                 //if we should not be running the planner then suspend this thread
-                ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Monitor thread suspending, waiting for requests...");
+                ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Requests thread suspending, waiting for requests...");
                 //ROS_DEBUG_NAMED(name_,"Monitor thread is suspending");
                 request_cond_.wait(lock);
-                ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Monitor thread woke up!");
+                ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Requests thread woke up!");
             }
             BehaviorRequest request = requests_.front();
             requests_.pop_front();
             
             lock.unlock();
+            
+            ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Received a request to process!");
             
             //Perform the action requested
             
@@ -460,7 +472,7 @@ protected:
     
     using Mutex = boost::mutex;
     using UniqueLock = boost::unique_lock<Mutex>;
-    using ScopedLock = boost::scoped_lock<Mutex>;
+    using ScopedLock = Mutex::scoped_lock;
     
     Mutex request_list_mutex_;
     std::deque<BehaviorRequest> requests_;
@@ -470,7 +482,7 @@ protected:
     
     boost::condition_variable_any request_cond_;
     
-    std::shared_ptr<boost::thread> monitor_thread_;
+    std::shared_ptr<boost::thread> requests_thread_;
     
     std::string name_;
 /*    
