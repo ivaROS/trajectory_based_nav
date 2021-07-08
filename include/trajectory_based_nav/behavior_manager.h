@@ -26,7 +26,6 @@ public:
     
     virtual bool activate()
     {
-        bool redundant_call=false;
         {
             Lock lock(current_status_mutex_);
             
@@ -42,22 +41,14 @@ public:
                     return false;
                 }
             }
-            else
-            {
-                redundant_call = true;
-            }
         }
         
-        if(redundant_call)
-        {
-            ROS_WARN_STREAM("[" << name_ << "] was already active!");
-            return true;
-        }
+        ROS_WARN_STREAM("[" << name_ << "] was already active!");
+        return true;
     }
     
     virtual bool deactivate()
     {
-        bool redundant_call=false;
         {
             Lock lock(current_status_mutex_);
             if(is_active_)
@@ -72,16 +63,10 @@ public:
                     return false;
                 }
             }
-            else
-            {
-                redundant_call = true;
-            }
         }
-        if(redundant_call)
-        {
-            ROS_WARN_STREAM("[" << name_ << "] was already inactive!");
-            return true;
-        }
+        
+        ROS_WARN_STREAM("[" << name_ << "] was already inactive!");
+        return true;
     }
     
     virtual bool is_active()
@@ -414,7 +399,6 @@ protected:
         
         ros::NodeHandle nh;
         
-        bool wait_for_wake = true;
         UniqueLock lock(request_list_mutex_);
         
         while(nh.ok())
@@ -437,18 +421,18 @@ protected:
             
             //Perform the action requested
             
-            ros::Time start_time = ros::Time::now();
+            //ros::Time start_time = ros::Time::now();
             
             if(request.should_be_active)
             {
                 ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Preparing to activate behavior [" << request.behavior->name() << "]...");
                 if(request.behavior->activate())
                 {
-                    ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Successfully activated behavior [" << request.behavior->name() << "]...");
+                    ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Successfully activated behavior [" << request.behavior->name() << "]!");
                 }
                 else
                 {
-                    ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Error when attempting to activate behavior [" << request.behavior->name() << "]...");
+                    ROS_ERROR_STREAM_NAMED(name_, "[" << name_ << "] Error when attempting to activate behavior [" << request.behavior->name() << "]!");
                 }
             }
             else
@@ -456,11 +440,11 @@ protected:
                 ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Preparing to deactivate behavior [" << request.behavior->name() << "]...");
                 if(request.behavior->deactivate())
                 {
-                    ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Successfully deactivated behavior [" << request.behavior->name() << "]...");
+                    ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Successfully deactivated behavior [" << request.behavior->name() << "]!");
                 }
                 else
                 {
-                    ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Error when attempting to deactivate behavior [" << request.behavior->name() << "]...");
+                    ROS_ERROR_STREAM_NAMED(name_, "[" << name_ << "] Error when attempting to deactivate behavior [" << request.behavior->name() << "]!");
                 }
             }
             
