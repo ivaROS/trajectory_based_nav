@@ -21,12 +21,12 @@ namespace trajectory_based_nav
     }
     return pose_arrays;
   }
-  
-  
-  
+    
   template<typename T>
   class GeneralNavImpl
   {
+  public:
+    using Ptr = std::shared_ptr<GeneralNavImpl<T> >;
     //ros::NodeHandle nh_, pnh_;
     //tf2_utils::TransformManager tfm_;
     //nav_msgs::OdometryConstPtr curr_odom_;
@@ -39,6 +39,7 @@ namespace trajectory_based_nav
     GeneralNavImpl(typename NavImpl<T>::Ptr lp):
       lp_(lp)
     {
+        lp_->setPlanningCB(boost::bind(&GeneralNavImpl<T>::Plan, this));
     }
     
     bool init(ros::NodeHandle nh)
@@ -47,7 +48,8 @@ namespace trajectory_based_nav
       evaluated_traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("evaluated_trajectories", 1);
       selected_traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("selected_trajectory", 1);
       viz_pub_ = nh.advertise<visualization_msgs::MarkerArray>("vizuals", 1);
-      lp_->cc_wrapper_->setCallback(boost::bind(&GeneralNavImpl<T>::Plan, this));
+      //lp_->setPlanningCB(boost::bind(&GeneralNavImpl<T>::Plan, this));
+      //lp_->cc_wrapper_->setCallback(boost::bind(&GeneralNavImpl<T>::Plan, this));
       return true;
     }
 

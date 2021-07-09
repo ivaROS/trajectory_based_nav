@@ -189,6 +189,8 @@ namespace trajectory_based_nav
   };
   
   
+  using NoArgsCallback = boost::function<void() >;
+  
   template<typename T>
   class NavImpl
   {
@@ -208,9 +210,16 @@ namespace trajectory_based_nav
     virtual TrajectoryVerifier::Ptr getTrajectoryMonitor()=0;
     virtual TrajectoryVerifier::Ptr getTrajectoryVerifier()=0;
     
+    virtual void setPlanningCB(NoArgsCallback planning_cb)
+    {
+        planning_cb_ = planning_cb;
+    }
     //virtual TrajectoryWrapper::Ptr getTrajectory(const nav_msgs::Odometry& odom)=0;
     
     using Ptr=std::shared_ptr<NavImpl>;
+    
+  protected:
+      NoArgsCallback planning_cb_;
   };
   
   
