@@ -272,6 +272,25 @@ class PreemptingBehavior : public Behavior
     
 };*/
 
+class TestBehavior : public Behavior
+{
+public:
+    TestBehavior(std::string name):
+        Behavior(name)
+    {}
+    
+    virtual bool start() override
+    {
+        ROS_INFO_STREAM("[" << name_ << "] started!");
+        return true;
+    }
+    
+    virtual bool stop() override
+    {
+        ROS_INFO_STREAM("[" << name_ << "] stopped!");
+        return true;
+    }
+};
 
 
 struct BehaviorRequest

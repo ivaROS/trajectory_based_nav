@@ -3,31 +3,6 @@
 
 using namespace trajectory_based_nav;
 
-class TestBehavior : public Behavior
-{
-public:
-    TestBehavior(std::string name):
-        Behavior(name)
-        {}
-        
-    virtual bool start() override
-    {
-        ROS_INFO_STREAM("[" << name_ << "] started!");
-        return true;
-    }
-    
-    virtual bool stop() override
-    {
-        ROS_INFO_STREAM("[" << name_ << "] stopped!");
-        return true;
-    }
-};
-
-
-
-
-
-
 int main(int argc, char** argv) {
   ros::init(argc, argv, "behavior_manager_test");
   ros::Time::init();

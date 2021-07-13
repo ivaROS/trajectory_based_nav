@@ -62,7 +62,7 @@ namespace trajectory_based_nav
       }   
     } customLess;
     
-    void Plan()
+    virtual void Plan()
     {
       ROS_INFO_STREAM("Plan");
       

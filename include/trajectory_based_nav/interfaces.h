@@ -214,10 +214,15 @@ namespace trajectory_based_nav
     {
         planning_cb_ = planning_cb;
     }
+    
+    virtual void enablePlanning()=0;
+    virtual void disablePlanning()=0;
+    
+    
     //virtual TrajectoryWrapper::Ptr getTrajectory(const nav_msgs::Odometry& odom)=0;
     
     using Ptr=std::shared_ptr<NavImpl>;
-    
+    using msg_type = T;
   protected:
       NoArgsCallback planning_cb_;
   };
