@@ -2,6 +2,8 @@
 #define TRAJECTORY_BASED_NAV_GENERAL_NAV_IMPL_H
   
 #include <trajectory_based_nav/interfaces.h>
+#include <trajectory_based_nav/planning_data.h>
+
 #include <benchmarking_tools/benchmarking_tools.h>
 #include <visualization_msgs/MarkerArray.h>
 
@@ -62,9 +64,10 @@ namespace trajectory_based_nav
       }   
     } customLess;
     
-    virtual void Plan()
+    virtual PlanningData Plan()
     {
       ROS_INFO_STREAM("Plan");
+      PlanningData data;
       
       auto t0 = ros::WallTime::now();
       
@@ -73,16 +76,21 @@ namespace trajectory_based_nav
       if(!odom_ptr)
       {
         ROS_WARN_STREAM("No odom! Can't plan");
-        return;
+        data.error = true;
+        data.stamp = ros::Time::now();
+        return data;
       }
       auto odom = *odom_ptr;
+      
+      data.stamp = odom.header.stamp;
       
       if(!lp_->update(odom))
       {
         ROS_WARN_STREAM("Planner failed to update, stopping!");
         lp_->getTrajectoryController()->stop();
         
-        return;
+        data.error = true;
+        return data;
       }
       
       DURATION_INFO_STREAM("planning", 50);
@@ -90,7 +98,8 @@ namespace trajectory_based_nav
       {
         ROS_INFO_STREAM("Terminating!");
         lp_->getTrajectoryController()->stop();
-        return;
+        data.terminate=true;
+        return data;
       }
       auto remaining_traj = lp_->getTrajectoryController()->getCurrentTrajectory();
       
@@ -109,10 +118,12 @@ namespace trajectory_based_nav
 //       }
       
       auto t01 = ros::WallTime::now();
-      bool planned = false;
+      //bool planned = false;
       if(lp_->getReplanLogic()->shouldReplan(odom, remaining_traj))
       {
-        planned = true;
+        data.replan = true;
+        
+        //planned = true;
         ROS_INFO_STREAM("Replanning!");
         auto t1 = ros::WallTime::now();
         
@@ -264,16 +275,19 @@ namespace trajectory_based_nav
               
               selected_traj_pub_.publish(selected_traj->getPoseArray());
               ROS_INFO_STREAM("Selected new trajectory! Trajectory cost=" << selected_traj->cost());
+              data.trajectory=PlanningData::Trajectory::NEW;
             }
             else
             {
               ROS_INFO_STREAM("Continuing on previous trajectory.");
+              data.trajectory=PlanningData::Trajectory::PREVIOUS;
             }
           }
           else
           {
             ROS_WARN_STREAM("No valid trajectory found, stopping!");
             lp_->getTrajectoryController()->stop();
+            data.trajectory=PlanningData::Trajectory::NONE;
           }
         }
         
@@ -288,6 +302,8 @@ namespace trajectory_based_nav
       {
         ROS_DEBUG_STREAM_NAMED("timing", "STATISTICS: {\"total_planning_time\":" << (ros::WallTime::now()-t0).toNSec() / 1e3 << ",\"planned\":false}");
       }
+      
+      return data;
     }
     
   

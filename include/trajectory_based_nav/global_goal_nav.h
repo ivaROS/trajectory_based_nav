@@ -9,7 +9,16 @@
 #include <boost/thread/mutex.hpp>
 #include <pips_egocylindrical/FreeSpaceCheckerService.h>
 #include <tf2_ros/message_filter.h>
+#include <message_filters/pass_through.h>
 #include <pips/utils/param_utils.h>
+
+
+//ActionServer
+#include <actionlib/server/simple_action_server.h>
+#include <move_base_msgs/MoveBaseAction.h>
+
+
+
 
 namespace trajectory_based_nav
 {
@@ -29,158 +38,14 @@ namespace trajectory_based_nav
   }
   
   
-  /*
-  class GlobalGoalManager
-  {
-      using MoveBaseActionServer = actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction>;
-      
-      
-      
-      bool init()
-      {
-          as_ = std::make_shared<MoveBaseActionServer>(nh, "move_base", boost::bind(&GlobalGoalManager::executeCb, this, _1), false);
-          
-          current_goal_pub_ = private_nh.advertise<geometry_msgs::PoseStamped>("current_goal", 0 );
-          
-          ros::NodeHandle action_nh("move_base");
-          action_goal_pub_ = action_nh.advertise<move_base_msgs::MoveBaseActionGoal>("goal", 1);
-          
-          //we'll provide a mechanism for some people to send goals as PoseStamped messages over a topic
-          //they won't get any useful information back about its status, but this is useful for tools
-          //like nav_view and rviz
-          ros::NodeHandle simple_nh("move_base_simple");
-          goal_sub_ = simple_nh.subscribe<geometry_msgs::PoseStamped>("goal", 1, boost::bind(&GlobalGoalManager::goalCB, this, _1));
-          
-      }
-      
-      //Modified from move_base.cpp
-      void goalCB(const geometry_msgs::PoseStamped::ConstPtr& goal){
-          ROS_DEBUG_NAMED("global_goal_manager","In ROS goal callback, wrapping the PoseStamped in the action message and re-sending to the server.");
-          move_base_msgs::MoveBaseActionGoal action_goal;
-          action_goal.header.stamp = ros::Time::now();
-          action_goal.goal.target_pose = *goal;
-          
-          action_goal_pub_.publish(action_goal);
-      }
-      
-      
-      void executeCb(const move_base_msgs::MoveBaseGoal::ConstPtr& move_base_goal)
-      {
-          if(!isQuaternionValid(move_base_goal->target_pose.pose.orientation)){
-              as_->setAborted(move_base_msgs::MoveBaseResult(), "Aborting on goal because it was sent with an invalid quaternion");
-              return;
-          }
-          
-          geometry_msgs::PoseStamped goal = goalToGlobalFrame(move_base_goal->target_pose);
-          
-          //we have a goal so start the planner
-          boost::unique_lock<boost::recursive_mutex> lock(planner_mutex_);
-          planner_goal_ = goal;
-          runPlanner_ = true;
-          planner_cond_.notify_one();
-          lock.unlock();
-          
-          current_goal_pub_.publish(goal);
-          std::vector<geometry_msgs::PoseStamped> global_plan;
-          
-          
-          //we want to make sure that we reset the last time we had a valid plan and control
-          last_valid_control_ = ros::Time::now();
-          last_valid_plan_ = ros::Time::now();
-          last_oscillation_reset_ = ros::Time::now();
-          planning_retries_ = 0;
-          
-          ros::NodeHandle n;
-          while(n.ok())
-          {
-
-              
-              if(as_->isPreemptRequested()){
-                  if(as_->isNewGoalAvailable())
-                  {
-                      //if we're active and a new goal is available, we'll accept it, but we won't shut anything down
-                      move_base_msgs::MoveBaseGoal new_goal = *as_->acceptNewGoal();
-                      
-                      if(!isQuaternionValid(new_goal.target_pose.pose.orientation)){
-                          as_->setAborted(move_base_msgs::MoveBaseResult(), "Aborting on goal because it was sent with an invalid quaternion");
-                          return;
-                      }
-                      
-                      goal = goalToGlobalFrame(new_goal.target_pose);
-                      
-                      //we'll make sure that we reset our state for the next execution cycle
-                      recovery_index_ = 0;
-                      state_ = PLANNING;
-                      
-                      //we have a new goal so make sure the planner is awake
-                      lock.lock();
-                      planner_goal_ = goal;
-                      runPlanner_ = true;
-                      planner_cond_.notify_one();
-                      lock.unlock();
-                      
-                      //publish the goal point to the visualizer
-                      ROS_DEBUG_NAMED("move_base","move_base has received a goal of x: %.2f, y: %.2f", goal.pose.position.x, goal.pose.position.y);
-                      current_goal_pub_.publish(goal);
-                      
-                      //make sure to reset our timeouts and counters
-                      last_valid_control_ = ros::Time::now();
-                      last_valid_plan_ = ros::Time::now();
-                      last_oscillation_reset_ = ros::Time::now();
-                      planning_retries_ = 0;
-                  }
-                  else 
-                  {
-                      //if we've been preempted explicitly we need to shut things down
-                      resetState();
-                      
-                      //notify the ActionServer that we've successfully preempted
-                      ROS_DEBUG_NAMED("move_base","Move base preempting the current goal");
-                      as_->setPreempted();
-                      
-                      //we'll actually return from execute after preempting
-                      return;
-                  }
-              }
-              
-              
-              
-              //for timing that gives real time even in simulation
-              ros::WallTime start = ros::WallTime::now();
-              
-              //the real work on pursuing a goal is done here
-              bool done = executeCycle(goal, global_plan);
-              
-              //if we're done, then we'll return from execute
-              if(done)
-                  return;
-              
-              //check if execution of the goal has completed in some way
-              
-              ros::WallDuration t_diff = ros::WallTime::now() - start;
-              ROS_DEBUG_NAMED("move_base","Full control cycle time: %.9f\n", t_diff.toSec());
-              
-              r.sleep();
-              //make sure to sleep for the remainder of our cycle time
-              if(r.cycleTime() > ros::Duration(1 / controller_frequency_) && state_ == CONTROLLING)
-                  ROS_WARN("Control loop missed its desired rate of %.4fHz... the loop actually took %.4f seconds", controller_frequency_, r.cycleTime().toSec());
-          }
-          
-          //wake up the planner thread so that it can exit cleanly
-          lock.lock();
-          runPlanner_ = true;
-          planner_cond_.notify_one();
-          lock.unlock();
-          
-          //if the node is killed then we'll abort and return
-          as_->setAborted(move_base_msgs::MoveBaseResult(), "Aborting on the goal because the node has been killed");
-          return;
-      }
-      
-      
-  };
   
-  */
+  /* Some global goal thoughts:
+   * Should have some mechanism for ensuring that consistent goal is used; ex, the goals in different frames include some ID (or even just a pointer to the original goal message)
+   * that allows them to be compared. For example, trajectory source can confirm that the global plan provided was for the same goal.
+   * 
+   * 
+   */
+  
   
   
   
@@ -200,6 +65,10 @@ namespace trajectory_based_nav
     
     using GoalTFFilter = tf2_ros::MessageFilter<geometry_msgs::PoseStamped>;
     std::shared_ptr<GoalTFFilter> goal_filter_;
+    
+    using PassThroughFilter = message_filters::PassThrough<geometry_msgs::PoseStamped>;
+    PassThroughFilter pass_through_filter_;
+    
     
     typedef boost::mutex::scoped_lock Lock;
     boost::mutex goal_mutex_;
@@ -260,8 +129,13 @@ namespace trajectory_based_nav
        */
       pips::utils::searchParam(pnh, "planning_frame_id", planning_frame_id_, "odom");
       
-      goal_sub_.subscribe(nh, "/move_base_simple/goal", 1);
-      goal_filter_ = std::make_shared<GoalTFFilter>(goal_sub_, *tfm.getBuffer(), planning_frame_id_, 2, nh);
+      //goal_sub_.subscribe(nh, "/move_base_simple/goal", 1);
+      
+      //pass_through_filter_ = std::make_shared<message_filters::PassThrough>();
+      
+      pass_through_filter_.connectInput(goal_sub_);
+      
+      goal_filter_ = std::make_shared<GoalTFFilter>(pass_through_filter_, *tfm.getBuffer(), planning_frame_id_, 2, nh);
       goal_filter_->registerCallback(boost::bind(&GlobalGoalState::GoalCallback, this, _1));
       
       return true;
@@ -274,7 +148,12 @@ namespace trajectory_based_nav
     
     virtual message_filters::SimpleFilter<geometry_msgs::PoseStamped>& getGoalSource()
     {
-      return goal_sub_;
+      return pass_through_filter_;  // goal_sub_;
+    }
+    
+    virtual message_filters::SimpleFilter<geometry_msgs::PoseStamped>& getReadyGoalSource()
+    {
+      return *goal_filter_;
     }
     
     virtual bool hasGoal()
@@ -291,7 +170,8 @@ namespace trajectory_based_nav
     
     virtual void setNewGoal(const geometry_msgs::PoseStamped::ConstPtr& goal)
     {
-      
+      ROS_INFO_STREAM_NAMED("global_goal_state", "[GlobalGoalState] received a new goal");
+      pass_through_filter_.add(goal);
     }
     
     virtual geometry_msgs::Pose getGoal()
@@ -429,6 +309,8 @@ namespace trajectory_based_nav
     using Ptr=std::shared_ptr<GlobalTrajectoryVerifier>;
     
   };
+  
+    
 
   
 } //end namespace trajectory_based_nav

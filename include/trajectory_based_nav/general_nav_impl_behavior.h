@@ -11,6 +11,9 @@ namespace trajectory_based_nav
     class GeneralNavImplBehavior : public Behavior, public GeneralNavImpl<T>
     {
     public:
+        using PlanningDataCB = boost::function<void(PlanningData) >;
+        
+    public:
         GeneralNavImplBehavior(std::string name, ros::NodeHandle nh, ros::NodeHandle pnh, typename std::shared_ptr<P> planner):
             trajectory_based_nav::Behavior(name),
             GeneralNavImpl<T>(planner),
@@ -30,7 +33,7 @@ namespace trajectory_based_nav
                 should_plan_ = true;
             }
             planner_->enablePlanning();
-            
+                        
             ROS_INFO_STREAM("[" << name_ << "] started!");
             
             return true;
@@ -49,22 +52,43 @@ namespace trajectory_based_nav
         }
         
         //GeneralNavImpl methods:
-        virtual void Plan() override
+        virtual PlanningData Plan() override
         {
             ScopedLock lock(planning_mutex_);
+            
+            PlanningData data;
         
             if(!should_plan_)
             {
-                ROS_INFO_STREAM("Aborted plan callback due to in-progress stop(). This should probably be a very rare occurence; if you see this message frequently, double check your code design");
-                return;
+                ROS_WARN_STREAM("Aborted plan callback due to in-progress stop(). This should probably be a very rare occurence; if you see this message frequently, double check your code design");
+                return data;
             }
-            GeneralNavImpl<T>::Plan();
+            data = GeneralNavImpl<T>::Plan();
+            
+            PlanningDataCB cb;
+            {
+                ScopedLock lock(planning_data_mutex_);
+                cb = planning_data_cb_;
+            }
+            
+            if(cb)
+            {
+                cb(data);
+            }
+            
+            return data;
+        }
+        
+        virtual void setPlanningDataCB(PlanningDataCB cb)
+        {
+            ScopedLock lock(planning_data_mutex_);
+            planning_data_cb_ = cb;
         }
         
         
     public:
         using Ptr = std::shared_ptr<GeneralNavImplBehavior<P,T> >;
-        
+                
         std::shared_ptr<P> planner_;
         
     protected:
@@ -75,9 +99,11 @@ namespace trajectory_based_nav
         using UniqueLock = boost::unique_lock<Mutex>;
         using ScopedLock = Mutex::scoped_lock;
         
-        Mutex planning_mutex_;
+        Mutex planning_mutex_, planning_data_mutex_;
         
         bool should_plan_;
+        
+        PlanningDataCB planning_data_cb_;
         
         boost::condition_variable_any planning_cond_;
         
