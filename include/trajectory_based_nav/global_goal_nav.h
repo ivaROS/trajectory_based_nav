@@ -278,7 +278,7 @@ namespace trajectory_based_nav
         auto dpos = ggs_->getGoal().position;
         double dx = pos.x - dpos.x;
         double dy = pos.y - dpos.y;
-        double dz = pos.z - dpos.z;
+        //double dz = pos.z - dpos.z;
         
         double dist = std::sqrt(dx*dx+dy*dy);//TODO: Maybe include dz?
         
