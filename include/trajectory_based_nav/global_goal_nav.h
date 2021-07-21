@@ -10,14 +10,9 @@
 #include <pips_egocylindrical/FreeSpaceCheckerService.h>
 #include <tf2_ros/message_filter.h>
 #include <message_filters/pass_through.h>
+#include <message_filters/subscriber.h>
+
 #include <pips/utils/param_utils.h>
-
-
-//ActionServer
-#include <actionlib/server/simple_action_server.h>
-#include <move_base_msgs/MoveBaseAction.h>
-
-
 
 
 namespace trajectory_based_nav
@@ -249,6 +244,7 @@ namespace trajectory_based_nav
     std::shared_ptr<GlobalGoalState> ggs_;
     
     double goal_dist_tolerance_;
+    std::string name_ = "termination_criteria";
     
   public:
     
@@ -283,6 +279,9 @@ namespace trajectory_based_nav
         double dist = std::sqrt(dx*dx+dy*dy);//TODO: Maybe include dz?
         
         bool reached_goal = dist < goal_dist_tolerance_;
+        
+        ROS_INFO_STREAM_NAMED(name_+".goal_distance", "[" + name_ + "]: reached_goal=" << reached_goal << ", goal dist= " << dist << ", goal_pos=" << dpos << ", robot_pos=" << pos);
+        
         if(reached_goal)
         {
           ggs_->reachedGoal();
