@@ -182,10 +182,10 @@ namespace trajectory_based_nav
                     candidate_trajs.push_back(remaining_traj);
                     ROS_INFO_STREAM("Current trajectory cost=" << remaining_traj->cost());
                 }
-                else
-                {
-                    ROS_ERROR("Unable to score current trajectory!");
-                }
+//                 else
+//                 {
+//                     ROS_ERROR("Unable to score current trajectory!");
+//                 }
             }
             
             std::sort(candidate_trajs.begin(), candidate_trajs.end(), customLess);
@@ -303,6 +303,8 @@ namespace trajectory_based_nav
                   data.trajectory=PlanningData::Trajectory::NONE;
               }
           }
+          
+          lp_->getReplanLogic()->setPlanningData(data);
           
           auto t5 = ros::WallTime::now();
           

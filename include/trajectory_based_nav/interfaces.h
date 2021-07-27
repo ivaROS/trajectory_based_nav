@@ -80,7 +80,7 @@ namespace trajectory_based_nav
   class TrajectorySource
   {
   public:
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; };
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; }
     virtual bool update(const nav_msgs::Odometry& odom, const TypedTrajectoryWrapper<T>& current_trajectory)=0;
     virtual bool hasMore() const =0;
     virtual typename TypedTrajectoryWrapper<T>::Ptr getNext()=0;
@@ -112,7 +112,7 @@ namespace trajectory_based_nav
     using Ptr=std::shared_ptr<TrajectoryController<T> >;
   };
   
-  
+  class PlanningData;
   class ReplanLogic
   {
   protected:
@@ -122,10 +122,11 @@ namespace trajectory_based_nav
     ros::Duration max_replan_period_;
     
   public:
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; };
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; }
     
     virtual void setTrajectory(TrajectoryWrapper::Ptr traj) { current_trajectory_ = traj; }
     virtual bool shouldReplan(const nav_msgs::Odometry& odom, TrajectoryWrapper::Ptr traj)=0;
+    virtual void setPlanningData(const PlanningData& data) {}
     
     using Ptr=std::shared_ptr<ReplanLogic>;
     
@@ -134,7 +135,7 @@ namespace trajectory_based_nav
   class TerminationCriteria
   {
   public:
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; };
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; }
     virtual bool shouldTerminate(const nav_msgs::Odometry& odom)=0;
     
     using Ptr=std::shared_ptr<TerminationCriteria>;
