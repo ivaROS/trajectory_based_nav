@@ -126,6 +126,7 @@ include_directories(
 # Declare a C++ library
 add_library(${PROJECT_NAME}
   src/interfaces.cpp
+  src/global_goal_state.cpp
 )
 
 #add_compile_options(${PROJECT_NAME} PUBLIC -Wall)
