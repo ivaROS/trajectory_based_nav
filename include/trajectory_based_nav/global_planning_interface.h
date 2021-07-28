@@ -128,8 +128,9 @@ namespace trajectory_based_nav
       nh_ = nh;
       pnh_ = ros::NodeHandle(pnh, name_);
       
-      goal_filter_ = std::make_shared<GoalTFFilter>(ggs_->getGoalSource(), *tfm_.getBuffer(), getPlanningFrameID(), 2, nh_);
-      goal_filter_->registerCallback(boost::bind(&GlobalPlanningInterface::goalCB, this, _1));
+      //goal_filter_ = std::make_shared<GoalTFFilter>(ggs_->getGoalSource(), *tfm_.getBuffer(), getPlanningFrameID(), 2, nh_);
+      //goal_filter_->registerCallback(boost::bind(&GlobalPlanningInterface::goalCB, this, _1));
+      ggs_->getReadyGoalSource().registerCallback(boost::bind(&GlobalPlanningInterface::goalCB, this, _1));
       
       return true;
     }

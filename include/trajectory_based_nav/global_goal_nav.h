@@ -52,9 +52,10 @@ namespace trajectory_based_nav
     
   protected:
     geometry_msgs::PoseStamped::ConstPtr goal_pose_;
+    geometry_msgs::PoseStamped planning_frame_goal_;
     bool have_goal_=false, have_new_goal_=false;
     
-    std::string planning_frame_id_;
+    std::string planning_frame_id_, fixed_frame_id_;
     
     message_filters::Subscriber<geometry_msgs::PoseStamped> goal_sub_;
     
@@ -85,7 +86,7 @@ namespace trajectory_based_nav
       bool goal_valid = false;
       try //This may not be necessary due to the TF MessageFilter
       {
-        transformed_goal = tfm_.getBuffer()->transform(*goal, planning_frame_id_);  //This works, but if transform is needed again later, best to hold onto it
+        transformed_goal = tfm_.getBuffer()->transform(*goal, fixed_frame_id_);  //This works, but if transform is needed again later, best to hold onto it
         //goal_to_planning_transform = tfm_.getBuffer()->lookupTransform(planning_frame_id_, goal->header.frame_id, goal->header.stamp);        
         goal_valid = true;
       }
@@ -124,13 +125,15 @@ namespace trajectory_based_nav
        */
       pips::utils::searchParam(pnh, "planning_frame_id", planning_frame_id_, "odom");
       
+      pips::utils::searchParam(pnh, "fixed_frame_id", fixed_frame_id_, "map");
+      
       //goal_sub_.subscribe(nh, "/move_base_simple/goal", 1);
       
       //pass_through_filter_ = std::make_shared<message_filters::PassThrough>();
       
       pass_through_filter_.connectInput(goal_sub_);
       
-      goal_filter_ = std::make_shared<GoalTFFilter>(pass_through_filter_, *tfm.getBuffer(), planning_frame_id_, 2, nh);
+      goal_filter_ = std::make_shared<GoalTFFilter>(pass_through_filter_, *tfm.getBuffer(), fixed_frame_id_, 2, nh);
       goal_filter_->registerCallback(boost::bind(&GlobalGoalState::GoalCallback, this, _1));
       
       return true;
@@ -174,9 +177,29 @@ namespace trajectory_based_nav
       Lock lock(goal_mutex_);
       
       have_new_goal_ = false;
-      auto pose = goal_pose_->pose;
+      //auto pose = goal_pose_->pose;
+      auto pose = planning_frame_goal_.pose;
       pose.position.z =1.2;
       return pose;
+    }
+    
+    virtual bool updateGoalTransform(const nav_msgs::Odometry& odom)
+    {
+      Lock lock(goal_mutex_);
+      
+      auto goal_pose = *goal_pose_;
+      //goal_pose.header.stamp = odom.header.stamp;
+      
+      try
+      {
+        planning_frame_goal_ = tfm_.getBuffer()->transform(goal_pose, planning_frame_id_, ros::Time(0), fixed_frame_id_);
+        return true;
+      }
+      catch (tf2::TransformException &ex) {
+        ROS_WARN_NAMED("global_goal_state", "Unable to transform current goal into planning frame!: %s",ex.what());
+        //If we know a new goal was sent but we were unable to transform it, should probably stop what we're doing
+        return false;
+      }
     }
     
     virtual geometry_msgs::PoseStamped getGoalStamped()
@@ -184,7 +207,8 @@ namespace trajectory_based_nav
       Lock lock(goal_mutex_);
       
       have_new_goal_ = false;
-      return *goal_pose_;
+      //return *goal_pose_;
+      return planning_frame_goal_;
     }
     
     //virtual geometry_msgs::TransformStamped get
