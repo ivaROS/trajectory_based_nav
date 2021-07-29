@@ -1,6 +1,9 @@
 #ifndef TRAJECTORY_BASED_NAV_PLANNING_DATA_H
 #define TRAJECTORY_BASED_NAV_PLANNING_DATA_H
 
+#include <trajectory_based_nav/interfaces.h>  //Only need TrajectoryWrapper
+#include <ros/time.h>
+
 namespace trajectory_based_nav
 {
 
@@ -14,9 +17,10 @@ namespace trajectory_based_nav
         bool terminate=false;
         bool replan=false;
         
-        enum class Trajectory {NEW, PREVIOUS, NONE};
-        Trajectory trajectory;
+        enum class TrajectoryType {NEW, PREVIOUS, NONE};
+        TrajectoryType trajectory_type;
         
+        TrajectoryWrapper::Ptr trajectory;
     };
 
 

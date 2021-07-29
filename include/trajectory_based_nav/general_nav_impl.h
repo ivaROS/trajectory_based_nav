@@ -281,6 +281,7 @@ namespace trajectory_based_nav
               
               if(selected_traj)
               {
+                  data.trajectory = selected_traj;
                   if(selected_traj != remaining_traj)
                   {
                       typename T::ConstPtr trajectory_msg = selected_traj->getTrajectoryMsg();
@@ -288,19 +289,19 @@ namespace trajectory_based_nav
                       
                       selected_traj_pub_.publish(selected_traj->getPoseArray());
                       ROS_INFO_STREAM("Selected new trajectory! Trajectory cost=" << selected_traj->cost());
-                      data.trajectory=PlanningData::Trajectory::NEW;
+                      data.trajectory_type=PlanningData::TrajectoryType::NEW;
                   }
                   else
                   {
                       ROS_INFO_STREAM("Continuing on previous trajectory.");
-                      data.trajectory=PlanningData::Trajectory::PREVIOUS;
+                      data.trajectory_type=PlanningData::TrajectoryType::PREVIOUS;
                   }
               }
               else
               {
                   ROS_WARN_STREAM("No valid trajectory found, stopping!");
                   lp_->getTrajectoryController()->stop();
-                  data.trajectory=PlanningData::Trajectory::NONE;
+                  data.trajectory_type=PlanningData::TrajectoryType::NONE;
               }
           }
           
