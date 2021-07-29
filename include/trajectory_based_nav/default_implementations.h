@@ -63,33 +63,51 @@ namespace trajectory_based_nav
   {
   protected:
     ros::Duration min_ttc_;
+    std::string name_;
     
   public:
     
+    BasicTrajectoryVerifier(std::string name="verifier"):
+      name_(name)
+      {}
+    
     virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
     {
-      min_ttc_ = ros::Duration(3);
+      auto ppnh = ros::NodeHandle(pnh, name_);
+      
+      double min_ttc=3;
+      ppnh.getParam("min_ttc", min_ttc);
+      ppnh.setParam("min_ttc", min_ttc);
+      
+      min_ttc_ = ros::Duration(min_ttc);
+      
       return true;
     }
     
     virtual bool verifyTrajectory(TrajectoryWrapper::Ptr traj)
     {
       int collision_ind = collisionCheckTrajectory(traj);
+      
+      ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] collision_ind=" << collision_ind);
+      
       traj->collision_check_res = std::make_shared<BasicCollisionCheckingResult>(collision_ind);
       if(collision_ind >=0)
       {
         auto collision_time = traj->getDurations()[std::min((int)traj->getDurations().size()-1,collision_ind)];
         if(collision_time < min_ttc_)
         {
+          ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] Verification failed: collision_time (" << collision_time << ") < min_ttc (" << min_ttc_ << ")");
           return false;
         }
         else
         {
+          ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] Verification passed: collision_time (" << collision_time << ") >= min_ttc (" << min_ttc_ << ")");
           return true;
         }
       }
       else
       {
+        ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] Verification passed: no collision");
         return true;
       }
       
@@ -163,7 +181,7 @@ namespace trajectory_based_nav
         replan = true;
       }
       else  
-      if(odom.header.stamp - last_planning_time > max_replan_period_)
+      if(max_replan_period_ >= ros::Duration() && (odom.header.stamp - last_planning_time) > max_replan_period_)
       {
         ROS_INFO_STREAM("[Replanning] Time since last plan=" << (odom.header.stamp - last_planning_time) << ", time to replan!");
         replan = true;
