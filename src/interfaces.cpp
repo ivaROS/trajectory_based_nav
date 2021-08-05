@@ -1,5 +1,5 @@
 #include <trajectory_based_nav/interfaces.h>
-
+#include <limits>
 
 namespace trajectory_based_nav
 {
@@ -22,7 +22,10 @@ namespace trajectory_based_nav
     auto cc = cc_wrapper_->getCC();
     
     const auto& poses = traj->getPoseArray().poses;
-    size_t num_remaining_poses = poses.size();
+    size_t unsigned_num = poses.size();
+    
+    ROS_ASSERT(unsigned_num <= static_cast<size_t>(std::numeric_limits<int>::max()));
+    int num_remaining_poses = static_cast<int>(unsigned_num);
     
     int i;
     for(i = 0; i < num_remaining_poses; i++)
