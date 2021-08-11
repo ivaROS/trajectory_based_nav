@@ -127,6 +127,7 @@ include_directories(
 add_library(${PROJECT_NAME}
   src/interfaces.cpp
   src/global_goal_state.cpp
+  src/global_goal_manager.cpp
 )
 
 #add_compile_options(${PROJECT_NAME} PUBLIC -Wall)

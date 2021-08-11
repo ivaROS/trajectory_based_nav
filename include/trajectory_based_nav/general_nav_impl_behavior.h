@@ -21,8 +21,11 @@ namespace trajectory_based_nav
             //is_planning_(false),
             should_plan_(false)
         {
-            planner_->init(nh, pnh);
-            GeneralNavImpl<T>::init(nh);
+            bool res = planner_->init(nh, pnh);
+            ROS_ASSERT_MSG(res, "Planner failed to initialize!");
+            
+            res &= GeneralNavImpl<T>::init(nh);
+            ROS_ASSERT_MSG(res, "Something went wrong when initializing GeneralNavImpl!");
         }
         
         //Behavior methods:
