@@ -152,6 +152,8 @@ namespace trajectory_based_nav
     
     void GlobalGoalState::reachedGoal()
     {
+      ROS_INFO_NAMED("global_goal_state.reached_goal", "[global_goal_state] Reached goal!");
+      
       Lock lock(goal_mutex_);
       
       have_goal_ = false;

@@ -11,7 +11,7 @@ namespace trajectory_based_nav
 {
   //NOTE: This function doesn't really need to know what kind of trajectories they are, may be possible to un-template it
   template<typename T>
-  geometry_msgs::PoseArray::ConstPtr CombinedPoseArray(const std::vector<typename TypedTrajectoryWrapper<T>::Ptr>& trajectories)
+  geometry_msgs::PoseArray::Ptr CombinedPoseArray(const std::vector<typename TypedTrajectoryWrapper<T>::Ptr>& trajectories)
   {
     geometry_msgs::PoseArray::Ptr pose_arrays = boost::make_shared<geometry_msgs::PoseArray>();
     
@@ -169,9 +169,12 @@ namespace trajectory_based_nav
             
             if(evaluated_traj_pub_.getNumSubscribers()>0)
             {
-                
-                geometry_msgs::PoseArray::ConstPtr pose_arrays = CombinedPoseArray<T>(candidate_trajs);
-                evaluated_traj_pub_.publish(pose_arrays);
+                geometry_msgs::PoseArray::Ptr pose_arrays = CombinedPoseArray<T>(candidate_trajs);
+                if(pose_arrays->header.frame_id.empty())
+                {
+                    pose_arrays->header = odom.header;
+                }
+                evaluated_traj_pub_.publish((geometry_msgs::PoseArray::ConstPtr)pose_arrays);
             }
             
             
