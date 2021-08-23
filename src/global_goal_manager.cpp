@@ -3,13 +3,16 @@
 namespace trajectory_based_nav 
 {
 
-        GlobalGoalManager::GlobalGoalManager(GlobalGoalState::Ptr ggs):
+        GlobalGoalManager::GlobalGoalManager(GlobalGoalState::Ptr ggs, TrajectoryController::Ptr controller):
             ggs_(ggs),
-            success_cb_(0)
+            controller_(controller),
+            success_cb_(0),
+            abort_cb_(0)
         {
             ggs_->setGoalReachedCallback(boost::bind(&GlobalGoalManager::reachedGoal, this));
         }
         
+        //Modified from move_base.cpp
         bool GlobalGoalManager::init(ros::NodeHandle nh, ros::NodeHandle pnh)
         {
             as_ = std::make_shared<MoveBaseActionServer>(nh, "move_base", false); //, boost::bind(&GlobalGoalManager::executeCb, this, _1), false);
@@ -20,19 +23,42 @@ namespace trajectory_based_nav
             ros::NodeHandle action_nh("move_base");
             action_goal_pub_ = action_nh.advertise<move_base_msgs::MoveBaseActionGoal>("goal", 1);
             
+            double feedback_publish_freq=5;
+            bool found_publish_freq = pnh.getParam("feedback_publish_freq", feedback_publish_freq);
+            if(controller_)
+            {
+              
+                ROS_WARN_STREAM_COND_NAMED(!found_publish_freq, "global_goal_manager", "WARNING! No [feedback_publish_freq] parameter specified, using default [" << feedback_publish_freq << "]Hz]");
+                
+                if(feedback_publish_freq>0)
+                {
+                    feedback_timer_ = nh.createTimer(ros::Duration(1/feedback_publish_freq), &GlobalGoalManager::publishFeedback, this, false, false);
+                }
+                else
+                {
+                    ROS_WARN_STREAM_NAMED("global_goal_manager", "WARNING! [feedback_publish_freq] =" << feedback_publish_freq << ", disabling feedback publishing");
+                }
+            }
+            else if(found_publish_freq)
+            {
+                ROS_WARN_STREAM_NAMED("global_goal_manager", "WARNING! Parameter [" << pnh.resolveName("feedback_publish_freq", true) << "] was set, but no controller was provided to GlobalGoalManager; disabling feedback publishing");
+            }
+            
+            
             //we'll provide a mechanism for some people to send goals as PoseStamped messages over a topic
             //they won't get any useful information back about its status, but this is useful for tools
             //like nav_view and rviz
             ros::NodeHandle simple_nh("move_base_simple");
             goal_sub_ = simple_nh.subscribe<geometry_msgs::PoseStamped>("goal", 1, boost::bind(&GlobalGoalManager::goalCB, this, _1));
             
-            as_->start();
+            as_->start(); //TODO: should this be moved before starting subscriber?
             return true;
         }
         
         void GlobalGoalManager::reachedGoal()
         {
             as_->setSucceeded(move_base_msgs::MoveBaseResult(), "Goal reached.");
+            feedback_timer_.stop(); //Does nothing if timer never initialized
             
             if(success_cb_)
             {
@@ -117,6 +143,17 @@ namespace trajectory_based_nav
             auto new_goal_pose = boost::make_shared<geometry_msgs::PoseStamped>(new_goal->target_pose);
             ggs_->setNewGoal(new_goal_pose);
             current_goal_pub_.publish(new_goal_pose);
+            feedback_timer_.start(); //Does nothing if timer never initialized
+        }
+        
+        void GlobalGoalManager::publishFeedback(const ros::TimerEvent& e)
+        {
+            const auto odom = controller_->getCurrentOdom();
+            //push the feedback out
+            move_base_msgs::MoveBaseFeedback feedback;
+            feedback.base_position.header = odom->header;
+            feedback.base_position.pose = odom->pose.pose;
+            as_->publishFeedback(feedback);
         }
         
         

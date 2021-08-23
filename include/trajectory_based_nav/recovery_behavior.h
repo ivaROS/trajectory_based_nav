@@ -54,10 +54,10 @@ namespace trajectory_based_nav
         using msg_type = T;
         
     protected:
-        typename TrajectoryController<T>::Ptr controller_;
+        typename TypedTrajectoryController<T>::Ptr controller_;
         
     public:
-        TypedRecoveryBehavior(std::string name, typename TrajectoryController<T>::Ptr controller):
+        TypedRecoveryBehavior(std::string name, typename TypedTrajectoryController<T>::Ptr controller):
             RecoveryBehavior(name),
             controller_(controller)
         {

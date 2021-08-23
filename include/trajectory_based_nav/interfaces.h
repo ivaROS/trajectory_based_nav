@@ -99,17 +99,24 @@ namespace trajectory_based_nav
   */
   
   
-  template<typename T>
   class TrajectoryController
+  {
+  public:
+    virtual nav_msgs::Odometry::ConstPtr getCurrentOdom()=0;
+    virtual void stop()=0;
+    
+    using Ptr=std::shared_ptr<TrajectoryController>;
+  };
+  
+  template<typename T>
+  class TypedTrajectoryController : public TrajectoryController
   {
   public:
     using msg_type = T;
     virtual void setTrajectory(const typename T::ConstPtr& traj)=0;
     virtual typename TypedTrajectoryWrapper<T>::Ptr getCurrentTrajectory()=0;
-    virtual nav_msgs::Odometry::ConstPtr getCurrentOdom()=0;
-    virtual void stop()=0;
     
-    using Ptr=std::shared_ptr<TrajectoryController<T> >;
+    using Ptr=std::shared_ptr<TypedTrajectoryController<T> >;
   };
   
   class PlanningData;
@@ -203,7 +210,7 @@ namespace trajectory_based_nav
     
     virtual bool update(const nav_msgs::Odometry& odom)=0;
     
-    virtual typename TrajectoryController<T>::Ptr getTrajectoryController()=0;
+    virtual typename TypedTrajectoryController<T>::Ptr getTrajectoryController()=0;
     virtual typename TrajectorySource<T>::Ptr getTrajectorySource()=0;
     virtual ReplanLogic::Ptr getReplanLogic()=0;
     virtual TrajectoryScoring::Ptr getTrajectoryScoring()=0;

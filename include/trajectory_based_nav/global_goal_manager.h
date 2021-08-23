@@ -2,6 +2,7 @@
 #define TRAJECTORY_BASED_NAV_GLOBAL_GOAL_MANAGER
 
 #include <trajectory_based_nav/global_goal_state.h>
+#include <trajectory_based_nav/interfaces.h>  //Only need TrajectoryController
 
 //ActionServer
 #include <actionlib/server/simple_action_server.h>
@@ -18,7 +19,7 @@ namespace trajectory_based_nav
         
     public:
         
-        GlobalGoalManager(GlobalGoalState::Ptr ggs);
+        GlobalGoalManager(GlobalGoalState::Ptr ggs, TrajectoryController::Ptr controller=nullptr);
         
         virtual bool init(ros::NodeHandle nh, ros::NodeHandle pnh);
         
@@ -34,11 +35,15 @@ namespace trajectory_based_nav
         
         void ActionGoalCB();
         
+        void publishFeedback(const ros::TimerEvent& e);
+        
         std::shared_ptr<MoveBaseActionServer> as_;
         ros::Publisher current_goal_pub_, action_goal_pub_;
         ros::Subscriber goal_sub_;
         
         GlobalGoalState::Ptr ggs_;
+        TrajectoryController::Ptr controller_;
+        ros::Timer feedback_timer_;
         
         NoArgsCallback success_cb_, abort_cb_;
         //boost::recursive_mutex action_mutex_;
