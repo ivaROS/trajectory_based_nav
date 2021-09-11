@@ -299,7 +299,7 @@ namespace trajectory_based_nav
           ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Planner thread woke up!");
           wait_for_wake = false;
         }
-        ros::Time start_time = ros::Time::now();
+        //ros::Time start_time = ros::Time::now();
         
         ROS_INFO_STREAM_NAMED(name_, "[" << name_ << "] Preparing to plan...");
         
