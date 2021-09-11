@@ -18,7 +18,7 @@ namespace trajectory_based_nav
             as_ = std::make_shared<MoveBaseActionServer>(nh, "move_base", false); //, boost::bind(&GlobalGoalManager::executeCb, this, _1), false);
             as_->registerGoalCallback(boost::bind(&GlobalGoalManager::ActionGoalCB, this));
             
-            current_goal_pub_ = pnh.advertise<geometry_msgs::PoseStamped>("current_goal", 0 );
+            current_goal_pub_ = pnh.advertise<geometry_msgs::PoseStamped>("current_goal", 1, true );
             
             ros::NodeHandle action_nh("move_base");
             action_goal_pub_ = action_nh.advertise<move_base_msgs::MoveBaseActionGoal>("goal", 1);

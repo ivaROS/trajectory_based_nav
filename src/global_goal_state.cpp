@@ -61,9 +61,9 @@ namespace trajectory_based_nav
        * 1. Always plan in the odometry frame and set it automatically based on first message received.
        * 2. Transform poses to the specified planning frame whenever needed.
        */
-      pips::utils::searchParam(ppnh, "planning_frame_id", planning_frame_id_, "odom");
+      pips::utils::searchParam(ppnh, "planning_frame_id", planning_frame_id_, "odom", -1);
       
-      pips::utils::searchParam(ppnh, "fixed_frame_id", fixed_frame_id_, "map");
+      pips::utils::searchParam(ppnh, "fixed_frame_id", fixed_frame_id_, "map", -1);
       
       //goal_sub_.subscribe(nh, "/move_base_simple/goal", 1);
       
@@ -133,7 +133,7 @@ namespace trajectory_based_nav
         return true;
       }
       catch (tf2::TransformException &ex) {
-        ROS_WARN_NAMED("global_goal_state", "Unable to transform current goal into planning frame!: %s",ex.what());
+        ROS_WARN_NAMED("global_goal_state", "Unable to transform current goal into planning frame [%s]! (fixed_frame=%s): %s", planning_frame_id_.c_str(), fixed_frame_id_.c_str(), ex.what());
         //If we know a new goal was sent but we were unable to transform it, should probably stop what we're doing
         return false;
       }
