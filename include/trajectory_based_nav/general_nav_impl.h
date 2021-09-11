@@ -35,7 +35,7 @@ namespace trajectory_based_nav
     typename NavImpl<T>::Ptr lp_;
     
     //ros::Publisher remaining_traj_pub_, commanded_traj_pub_;
-    ros::Publisher evaluated_traj_pub_, original_traj_pub_, viz_pub_, selected_traj_pub_;
+    ros::Publisher evaluated_traj_pub_, original_traj_pub_, viz_pub_, selected_traj_pub_, individual_traj_pub_;
     
   public:
     GeneralNavImpl(typename NavImpl<T>::Ptr lp);
@@ -67,6 +67,7 @@ namespace trajectory_based_nav
     {
         original_traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("original_trajectories", 1);
         evaluated_traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("evaluated_trajectories", 1);
+        individual_traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("individual_trajectories", 50);
         selected_traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("selected_trajectory", 1);
         viz_pub_ = nh.advertise<visualization_msgs::MarkerArray>("vizuals", 1);
         //lp_->setPlanningCB(boost::bind(&GeneralNavImpl<T>::Plan, this));
@@ -177,6 +178,13 @@ namespace trajectory_based_nav
                 evaluated_traj_pub_.publish((geometry_msgs::PoseArray::ConstPtr)pose_arrays);
             }
             
+            if(individual_traj_pub_.getNumSubscribers()>0)
+            {
+                for(const auto& traj : candidate_trajs)
+                {
+                    individual_traj_pub_.publish(traj->getPoseArray());
+                }
+            }
             
             if(remaining_traj->getPoseArray().poses.size()>0)
             {
