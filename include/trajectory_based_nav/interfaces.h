@@ -123,12 +123,14 @@ namespace trajectory_based_nav
   class ReplanLogic
   {
   protected:
+    std::string name_;
     TrajectoryWrapper::Ptr current_trajectory_;
     
     ros::Time last_planning_time_;
     ros::Duration max_replan_period_;
     
   public:
+    ReplanLogic(std::string name="replan_logic"): name_(name){}
     virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm){ return true; }
     
     virtual void setTrajectory(TrajectoryWrapper::Ptr traj) { current_trajectory_ = traj; }

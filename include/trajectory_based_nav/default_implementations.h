@@ -121,15 +121,17 @@ namespace trajectory_based_nav
   
   class BasicReplanLogic : public trajectory_based_nav::ReplanLogic
   {
-    trajectory_based_nav::TrajectoryVerifier::Ptr verifier_;
     
+  protected:
+    trajectory_based_nav::TrajectoryVerifier::Ptr verifier_;
     ros::Duration min_tte_;
     
   public:
     using Ptr = std::shared_ptr<BasicReplanLogic>;
     
   public:
-    BasicReplanLogic(trajectory_based_nav::TrajectoryVerifier::Ptr verifier)
+    BasicReplanLogic(trajectory_based_nav::TrajectoryVerifier::Ptr verifier, std::string name="basic_replan_logic"):
+      ReplanLogic(name)
     {
       verifier_ = verifier;
       //min_tte_ = ros::Duration(3);
@@ -138,7 +140,7 @@ namespace trajectory_based_nav
     
     virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
     {
-      auto mnh = ros::NodeHandle(pnh, "basic_replan_logic");
+      auto mnh = ros::NodeHandle(pnh, name_);
       
       double min_tte=3;
       mnh.getParam("min_tte", min_tte);

@@ -46,8 +46,8 @@ namespace trajectory_based_nav
   class GlobalGoalReplanLogic : public BasicReplanLogic
   {
   public:
-    GlobalGoalReplanLogic(trajectory_based_nav::TrajectoryVerifier::Ptr verifier, std::shared_ptr<GlobalGoalState> ggs):
-      BasicReplanLogic(verifier),
+    GlobalGoalReplanLogic(trajectory_based_nav::TrajectoryVerifier::Ptr verifier, std::shared_ptr<GlobalGoalState> ggs, std::string name="global_goal_replan_logic"):
+      BasicReplanLogic(verifier, name),
       ggs_(ggs)
     {
       
