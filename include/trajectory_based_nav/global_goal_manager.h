@@ -44,6 +44,7 @@ namespace trajectory_based_nav
         GlobalGoalState::Ptr ggs_;
         TrajectoryController::Ptr controller_;
         ros::Timer feedback_timer_;
+        double default_goal_height_;
         
         NoArgsCallback success_cb_, abort_cb_;
         //boost::recursive_mutex action_mutex_;

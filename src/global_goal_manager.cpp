@@ -23,6 +23,13 @@ namespace trajectory_based_nav
             ros::NodeHandle action_nh("move_base");
             action_goal_pub_ = action_nh.advertise<move_base_msgs::MoveBaseActionGoal>("goal", 1);
             
+            default_goal_height_ = 1.5;
+            if(!pnh.getParam("default_goal_height", default_goal_height_))
+            {
+              pnh.setParam("default_goal_height", default_goal_height_);
+            }
+            
+            
             double feedback_publish_freq=5;
             bool found_publish_freq = pnh.getParam("feedback_publish_freq", feedback_publish_freq);
             if(controller_)
@@ -83,6 +90,11 @@ namespace trajectory_based_nav
             move_base_msgs::MoveBaseActionGoal action_goal;
             action_goal.header.stamp = ros::Time::now();
             action_goal.goal.target_pose = *goal;
+            
+            if(action_goal.goal.target_pose.pose.position.z == 0)
+            {
+              action_goal.goal.target_pose.pose.position.z = default_goal_height_;
+            }
             
             action_goal_pub_.publish(action_goal);
         }

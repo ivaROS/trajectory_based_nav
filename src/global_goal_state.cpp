@@ -112,13 +112,8 @@ namespace trajectory_based_nav
     
     geometry_msgs::Pose GlobalGoalState::getGoal()
     {
-      Lock lock(goal_mutex_);
-      
-      have_new_goal_ = false;
-      //auto pose = goal_pose_->pose;
-      auto pose = planning_frame_goal_.pose;
-      pose.position.z =1.2;
-      return pose;
+      geometry_msgs::PoseStamped goal_stamped = getGoalStamped();
+      return goal_stamped.pose;
     }
     
     bool GlobalGoalState::updateGoalTransform(const nav_msgs::Odometry& odom)
