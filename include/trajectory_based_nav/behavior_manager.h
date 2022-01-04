@@ -22,58 +22,16 @@ public:
         
     }
     
-    virtual bool activate()
-    {
-        {
-            Lock lock(current_status_mutex_);
-            
-            if(!is_active_)
-            {
-                if(start())
-                {
-                    is_active_ = true;
-                    return true;
-                }
-                else 
-                {
-                    return false;
-                }
-            }
-        }
-        
-        ROS_WARN_STREAM("[" << name_ << "] was already active!");
-        return true;
-    }
+    virtual ~Behavior() = default;
     
-    virtual bool deactivate()
-    {
-        {
-            Lock lock(current_status_mutex_);
-            if(is_active_)
-            {
-                if(stop())
-                {
-                    is_active_ = false;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-        }
-        
-        ROS_WARN_STREAM("[" << name_ << "] was already inactive!");
-        return true;
-    }
+    virtual bool activate();
     
-    virtual bool is_active()
-    {
-        Lock lock(current_status_mutex_);
-        return is_active_;
-    }
+    virtual bool deactivate();
     
-    const std::string& name() {return name_;}
+    //TODO: make const
+    virtual bool is_active();
+    
+    const std::string& name() const {return name_;}
     
 protected:
     virtual bool start() {return true;}
@@ -276,6 +234,8 @@ public:
     TestBehavior(std::string name):
         Behavior(name)
     {}
+    
+    virtual ~TestBehavior() = default;
     
     virtual bool start() override
     {

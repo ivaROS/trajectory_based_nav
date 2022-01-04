@@ -1,6 +1,7 @@
 #ifndef TRAJECTORY_BASED_NAV_RECOVERY_BEHAVIOR_H
 #define TRAJECTORY_BASED_NAV_RECOVERY_BEHAVIOR_H
 
+#include <trajectory_based_nav/behavior_manager.h>
 #include <trajectory_based_nav/interfaces.h>    //Only needs TrajectoryController interface
 #include <ros/console.h>
 
@@ -19,6 +20,8 @@ namespace trajectory_based_nav
         RecoveryBehavior(std::string name):
             Behavior(name)
         {}
+        
+        virtual ~RecoveryBehavior() = default;
         
         virtual bool start() override
         {
@@ -66,6 +69,9 @@ namespace trajectory_based_nav
                 ROS_ERROR_STREAM_NAMED(name_, "[" << name_ << "] was provided with a null controller!");
             }
         }
+        
+        virtual ~TypedRecoveryBehavior() = default;
+
         
         virtual bool start() override
         {

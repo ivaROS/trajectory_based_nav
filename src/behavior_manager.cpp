@@ -3,6 +3,58 @@
 
 namespace trajectory_based_nav
 {
+    
+    bool Behavior::activate()
+    {
+        {
+            Lock lock(current_status_mutex_);
+            
+            if(!is_active_)
+            {
+                if(start())
+                {
+                    is_active_ = true;
+                    return true;
+                }
+                else 
+                {
+                    return false;
+                }
+            }
+        }
+        
+        ROS_WARN_STREAM("[" << name_ << "] was already active!");
+        return true;
+    }
+    
+    bool Behavior::deactivate()
+    {
+        {
+            Lock lock(current_status_mutex_);
+            if(is_active_)
+            {
+                if(stop())
+                {
+                    is_active_ = false;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        
+        ROS_WARN_STREAM("[" << name_ << "] was already inactive!");
+        return true;
+    }
+    
+    bool Behavior::is_active()
+    {
+        Lock lock(current_status_mutex_);
+        return is_active_;
+    }
+    
 
     BehaviorManager::BehaviorManager(std::string name):
         name_(name)

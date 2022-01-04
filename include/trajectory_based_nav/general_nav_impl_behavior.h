@@ -28,6 +28,8 @@ namespace trajectory_based_nav
             ROS_ASSERT_MSG(res, "Something went wrong when initializing GeneralNavImpl!");
         }
         
+        ~GeneralNavImplBehavior() = default;
+        
         //Behavior methods:
         virtual bool start() override
         {

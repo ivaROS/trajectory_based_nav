@@ -40,6 +40,8 @@ namespace trajectory_based_nav
   public:
     GeneralNavImpl(typename NavImpl<T>::Ptr lp);
     
+    virtual ~GeneralNavImpl() = default;
+    
     bool init(ros::NodeHandle nh);
   
     //Based on https://en.cppreference.com/w/cpp/algorithm/sort
