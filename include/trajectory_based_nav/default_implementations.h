@@ -2,6 +2,7 @@
 #define NAV_GENERAL_DEFAULT_IMPLEMENTATIONS_H
 
 #include<trajectory_based_nav/interfaces.h>
+#include <numeric> //for accumulate
 
 namespace trajectory_based_nav
 {
@@ -93,6 +94,11 @@ namespace trajectory_based_nav
       traj->collision_check_res = std::make_shared<BasicCollisionCheckingResult>(collision_ind);
       if(collision_ind >=0)
       {
+        if(min_ttc_ < ros::Duration(0))
+        {
+          ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] Verification failed: no collisions permitted");
+          return false;
+        }
         auto collision_time = traj->getDurations()[std::min((int)traj->getDurations().size()-1,collision_ind)];
         if(collision_time < min_ttc_)
         {
