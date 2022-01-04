@@ -56,15 +56,15 @@ namespace trajectory_based_nav
   class CostmapBasedGlobalPlannerInterface : GlobalPlannerInterface<T>
   {
   protected:
-    tf::TransformListener tf_;  //Newer versions of navigation packages make the switch to tf2_ros, but holding off on upgrading for now
+    tf2_utils::TransformManager tfm_;
     costmap_2d::Costmap2DROS costmap_;
     
   public:
     //using planner_result_t = T;
     
-    CostmapBasedGlobalPlannerInterface():
-      tf_(),
-      costmap_("global_costmap", tf_)
+    CostmapBasedGlobalPlannerInterface(tf2_utils::TransformManager tfm = tf2_utils::TransformManager(true)):
+      tfm_(tfm),
+      costmap_("global_costmap", *tfm_.getBuffer())
       {}
       
     virtual std::string getPlanningFrameID()
@@ -75,13 +75,12 @@ namespace trajectory_based_nav
     virtual bool getRobotPose(geometry_msgs::PoseStamped& start)
     {
       //I'd still rather use odometry msg, but this may be easier for now
-      tf::Stamped<tf::Pose> global_pose;
-      if(!costmap_.getRobotPose(global_pose)) {
+      
+      if(!costmap_.getRobotPose(start)) {
         ROS_WARN("Unable to get starting pose of robot, unable to create global plan");
         return false;
       }
       
-      tf::poseStampedTFToMsg(global_pose, start);
       return true;
     }
   };
