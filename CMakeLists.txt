@@ -128,6 +128,9 @@ add_library(${PROJECT_NAME}
   src/interfaces.cpp
   src/global_goal_state.cpp
   src/global_goal_manager.cpp
+  src/behavior_manager.cpp
+  src/basic_replan_logic.cpp
+  src/basic_trajectory_verifier.cpp
 #  src/multi_level_cc_wrapper.cpp
 )
 
@@ -162,6 +165,7 @@ target_link_libraries(${PROJECT_NAME}
 add_executable(test_behavior_manager src/tests/behavior_manager_test_node.cpp)
 
 target_link_libraries(test_behavior_manager
+  ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 

@@ -32,34 +32,6 @@ namespace trajectory_based_nav
   };
   
   
-  
-/*  
-  class BasicTrajectoryVerifier : public trajectory_based_nav::TrajectoryVerifier
-  {
-  protected:
-    ros::Duration min_ttc_;
-    std::string name_;
-    
-  public:
-    
-    BasicTrajectoryVerifier(std::string name="basic_trajectory_verifier") : name_(name) {}
-    
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
-    {
-      //min_ttc_ = ros::Duration(3);
-      
-      auto mnh = ros::NodeHandle(pnh, name_);
-      
-      double min_ttc=3;
-      mnh.getParam("min_ttc", min_ttc);
-      mnh.setParam("min_ttc", min_ttc);
-      
-      min_ttc_ = ros::Duration(min_ttc);
-    }
-  
-  */
-  
-  
   class BasicTrajectoryVerifier : public trajectory_based_nav::TrajectoryVerifier
   {
   protected:
@@ -72,57 +44,11 @@ namespace trajectory_based_nav
       name_(name)
       {}
     
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
-    {
-      auto ppnh = ros::NodeHandle(pnh, name_);
-      
-      double min_ttc=3;
-      ppnh.getParam("min_ttc", min_ttc);
-      ppnh.setParam("min_ttc", min_ttc);
-      
-      min_ttc_ = ros::Duration(min_ttc);
-      
-      return true;
-    }
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm);
     
-    virtual bool verifyTrajectory(TrajectoryWrapper::Ptr traj)
-    {
-      int collision_ind = collisionCheckTrajectory(traj);
-      
-      ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] collision_ind=" << collision_ind);
-      
-      traj->collision_check_res = std::make_shared<BasicCollisionCheckingResult>(collision_ind);
-      if(collision_ind >=0)
-      {
-        if(min_ttc_ < ros::Duration(0))
-        {
-          ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] Verification failed: no collisions permitted");
-          return false;
-        }
-        auto collision_time = traj->getDurations()[std::min((int)traj->getDurations().size()-1,collision_ind)];
-        if(collision_time < min_ttc_)
-        {
-          ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] Verification failed: collision_time (" << collision_time << ") < min_ttc (" << min_ttc_ << ")");
-          return false;
-        }
-        else
-        {
-          ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] Verification passed: collision_time (" << collision_time << ") >= min_ttc (" << min_ttc_ << ")");
-          return true;
-        }
-      }
-      else
-      {
-        ROS_INFO_STREAM_NAMED("trajectory_verifier", "[" << name_ << "] Verification passed: no collision");
-        return true;
-      }
-      
-    }
+    virtual bool verifyTrajectory(TrajectoryWrapper::Ptr traj);
     
   };
-  
-  
-
   
   
   class BasicReplanLogic : public trajectory_based_nav::ReplanLogic
@@ -136,81 +62,11 @@ namespace trajectory_based_nav
     using Ptr = std::shared_ptr<BasicReplanLogic>;
     
   public:
-    BasicReplanLogic(trajectory_based_nav::TrajectoryVerifier::Ptr verifier, std::string name="basic_replan_logic"):
-      ReplanLogic(name)
-    {
-      verifier_ = verifier;
-      //min_tte_ = ros::Duration(3);
-      //max_replan_period_ = ros::Duration(3);  //TODO: use ros parameters
-    }
+    BasicReplanLogic(trajectory_based_nav::TrajectoryVerifier::Ptr verifier, std::string name="basic_replan_logic");
     
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
-    {
-      auto mnh = ros::NodeHandle(pnh, name_);
-      
-      double min_tte=3;
-      mnh.getParam("min_tte", min_tte);
-      mnh.setParam("min_tte", min_tte);
-      
-      min_tte_ = ros::Duration(min_tte);
-      
-      double max_replan_period=0.2;
-      mnh.getParam("max_replan_period", max_replan_period);
-      mnh.setParam("max_replan_period", max_replan_period);
-      
-      max_replan_period_ = ros::Duration(max_replan_period);  //TODO: use ros parameters
-      
-      return true;
-    }
+    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm);
     
-    virtual bool shouldReplan(const nav_msgs::Odometry& odom, TrajectoryWrapper::Ptr traj)
-    {
-      auto last_planning_time = last_planning_time_;
-      
-//       if(!current_trajectory_)
-//       {
-//         ROS_INFO_STREAM("No current trajectory, definitely replan!");
-//         return true;
-//       }
-      
-      auto durations = traj->getDurations();
-      
-      bool replan = false;
-      
-      if(durations.size()==0)
-      {
-        ROS_INFO_STREAM("[Replanning] No existing trajectory, time to replan!");
-        replan = true;
-      }
-      else
-      if(!traj->to_goal && durations.size()>0 && durations.back() < min_tte_)
-      {
-        ROS_INFO_STREAM("[Replanning] Time to end of trajectory=" << durations.back() << ", less than permitted minimum");
-        replan = true;
-      }
-      else  
-      if(max_replan_period_ >= ros::Duration() && (odom.header.stamp - last_planning_time) > max_replan_period_)
-      {
-        ROS_INFO_STREAM("[Replanning] Time since last plan=" << (odom.header.stamp - last_planning_time) << ", time to replan!");
-        replan = true;
-      }
-      else
-      if(!verifier_->verifyTrajectory(traj))
-      {
-        ROS_INFO_STREAM("Verifier is not satisfied, replan");
-        replan = true;
-      }
-      
-      if(replan)
-      {
-        last_planning_time_ = odom.header.stamp;
-      }
-      else
-      {
-        ROS_DEBUG_STREAM("[Replanning] Not replanning!");
-      }
-      return replan;
-    }
+    virtual bool shouldReplan(const nav_msgs::Odometry& odom, TrajectoryWrapper::Ptr traj);
     
   };
   
