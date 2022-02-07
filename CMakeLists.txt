@@ -9,11 +9,14 @@ add_compile_options(-std=c++11 -Wall)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
+  move_base_msgs
+  nav_msgs
   roscpp
   trajectory_msgs
   tf2_utils
   pips_trajectory_testing
   benchmarking_tools
+  tf2_geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -108,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS geometry_msgs roscpp trajectory_msgs tf2_utils nav_msgs pips_trajectory_testing benchmarking_tools
+  CATKIN_DEPENDS geometry_msgs move_base_msgs roscpp trajectory_msgs tf2_utils nav_msgs pips_trajectory_testing benchmarking_tools tf2_geometry_msgs
 #  DEPENDS system_lib
 )
 

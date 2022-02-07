@@ -11,7 +11,7 @@
 #include <tf2_ros/message_filter.h>
 //#include <pips/utils/param_utils.h>
 //#include <condition_variable>
-
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 namespace trajectory_based_nav
 {
