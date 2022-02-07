@@ -104,6 +104,8 @@ namespace trajectory_based_nav
   public:
     virtual nav_msgs::Odometry::ConstPtr getCurrentOdom()=0;
     virtual void stop(bool force_stop=false)=0;
+    virtual void enable() {}
+    virtual void disable() {}
     
     using Ptr=std::shared_ptr<TrajectoryController>;
   };
