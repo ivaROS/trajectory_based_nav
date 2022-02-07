@@ -16,6 +16,7 @@ namespace trajectory_based_nav
     BasicCollisionCheckingResult(int ind): colliding_ind(ind)
     {}
     
+    virtual ~BasicCollisionCheckingResult() = default;
     
   public:
     virtual int collision_ind()
@@ -43,6 +44,8 @@ namespace trajectory_based_nav
     BasicTrajectoryVerifier(std::string name="verifier"):
       name_(name)
       {}
+      
+    virtual ~BasicTrajectoryVerifier() = default;
     
     virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm);
     
@@ -64,6 +67,8 @@ namespace trajectory_based_nav
   public:
     BasicReplanLogic(trajectory_based_nav::TrajectoryVerifier::Ptr verifier, std::string name="basic_replan_logic");
     
+    virtual ~BasicReplanLogic() = default;
+
     virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm);
     
     virtual bool shouldReplan(const nav_msgs::Odometry& odom, TrajectoryWrapper::Ptr traj);
