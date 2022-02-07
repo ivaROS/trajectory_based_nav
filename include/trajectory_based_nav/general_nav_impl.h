@@ -283,6 +283,17 @@ namespace trajectory_based_nav
               typename TypedTrajectoryWrapper<T>::Ptr selected_traj;
               for(auto traj : candidate_trajs)
               {
+                  double traj_cost = traj->cost();
+                  if(traj_cost == std::numeric_limits<double>::max())
+                  {
+                    ROS_INFO_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is fatal.");
+                    break;
+                  }
+                  else
+                  {
+                    ROS_DEBUG_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is not fatal.");
+                  }
+                
                   traj_count++;
                   if(lp_->getTrajectoryVerifier()->verifyTrajectory(traj))
                   {
