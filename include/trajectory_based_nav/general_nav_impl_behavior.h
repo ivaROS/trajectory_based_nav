@@ -14,14 +14,14 @@ namespace trajectory_based_nav
         using PlanningDataCB = boost::function<void(PlanningData) >;
         
     public:
-        GeneralNavImplBehavior(std::string name, ros::NodeHandle nh, ros::NodeHandle pnh, typename std::shared_ptr<P> planner):
+        GeneralNavImplBehavior(std::string name, ros::NodeHandle nh, ros::NodeHandle pnh, typename std::shared_ptr<P> planner, tf2_utils::TransformManager tfm = tf2_utils::TransformManager(true)):
             trajectory_based_nav::Behavior(name),
             GeneralNavImpl<T>(planner),
             planner_(planner),
             //is_planning_(false),
             should_plan_(false)
         {
-            bool res = planner_->init(nh, pnh);
+            bool res = planner_->init(nh, pnh, tfm);
             ROS_ASSERT_MSG(res, "Planner failed to initialize!");
             
             res &= GeneralNavImpl<T>::init(nh);
@@ -117,9 +117,9 @@ namespace trajectory_based_nav
     
     
     template <typename Q, typename P=typename Q::element_type, typename T=typename P::msg_type>
-    auto MakeGeneralNavImplBehavior(std::string name, ros::NodeHandle nh, ros::NodeHandle pnh, Q planner) -> decltype(std::make_shared<GeneralNavImplBehavior<P,T> >(name, nh, pnh, planner))
+    auto MakeGeneralNavImplBehavior(std::string name, ros::NodeHandle nh, ros::NodeHandle pnh, Q planner, tf2_utils::TransformManager tfm = tf2_utils::TransformManager(true)) -> decltype(std::make_shared<GeneralNavImplBehavior<P,T> >(name, nh, pnh, planner, tfm))
     {
-        return std::make_shared<GeneralNavImplBehavior<P,T> >(name, nh, pnh, planner);
+        return std::make_shared<GeneralNavImplBehavior<P,T> >(name, nh, pnh, planner, tfm);
     }
 
 }   //end namespace trajectory_based_nav
