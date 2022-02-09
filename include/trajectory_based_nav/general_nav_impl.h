@@ -7,6 +7,8 @@
 #include <benchmarking_tools/benchmarking_tools.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include <sstream>
+
 namespace trajectory_based_nav
 {
   //NOTE: This function doesn't really need to know what kind of trajectories they are, may be possible to un-template it
@@ -71,7 +73,7 @@ namespace trajectory_based_nav
         evaluated_traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("evaluated_trajectories", 1);
         individual_traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("individual_trajectories", 50);
         selected_traj_pub_ = nh.advertise<geometry_msgs::PoseArray>("selected_trajectory", 1);
-        viz_pub_ = nh.advertise<visualization_msgs::MarkerArray>("vizuals", 1);
+        viz_pub_ = nh.advertise<visualization_msgs::MarkerArray>("visuals", 1);
         //lp_->setPlanningCB(boost::bind(&GeneralNavImpl<T>::Plan, this));
         //lp_->cc_wrapper_->setCallback(boost::bind(&GeneralNavImpl<T>::Plan, this));
         return true;
@@ -256,6 +258,10 @@ namespace trajectory_based_nav
                     label_marker.pose.position.y = end_pos.y;
                     label_marker.pose.position.z = end_pos.z;
                     label_marker.text = std::to_string(ind);
+                    if(traj == remaining_traj)
+                    {
+                        label_marker.text += "(C)";
+                    }
                     markers.markers.push_back(label_marker);
                     label_marker.id++;
                     ind++;
@@ -280,28 +286,42 @@ namespace trajectory_based_nav
           
           int traj_count=0;
           {
+              std::stringstream ss;
+              
               typename TypedTrajectoryWrapper<T>::Ptr selected_traj;
               for(auto traj : candidate_trajs)
               {
                   double traj_cost = traj->cost();
                   if(traj_cost == std::numeric_limits<double>::max())
                   {
-                    ROS_INFO_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is fatal.");
-                    break;
+                      ROS_INFO_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is fatal.");
+                      break;
                   }
                   else
                   {
-                    ROS_DEBUG_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is not fatal.");
+                      ROS_DEBUG_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is not fatal.");
                   }
+                
+                  ss << "#" << traj_count;
+                  if(traj == remaining_traj)
+                  {
+                      ss << "(C)";
+                  }
+                  
+                  ss << ": " << *(traj->getCosts());
                 
                   traj_count++;
                   if(lp_->getTrajectoryVerifier()->verifyTrajectory(traj))
                   {
+                      ss << " PASSED";
                       selected_traj = traj;
                       break;
                   }
+                  ss << " FAILED\n";
                   
               }
+              
+              ROS_DEBUG_STREAM_NAMED("general_nav_impl.selection.details", "Trajectory Details:\n" << ss.str());
               
               if(selected_traj)
               {

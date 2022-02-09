@@ -98,11 +98,13 @@ namespace trajectory_based_nav
   
   class BasicTrajectoryCosts : public TrajectoryCosts
   {
-  public:
+  public: //TODO: Make this protected and add a 'set' function
     double single_cost;
     
   public:
-    virtual double cost() { return single_cost;}
+    BasicTrajectoryCosts(): single_cost(0) {}
+    
+    virtual double cost() const override { return single_cost;}
     
     using Ptr=std::shared_ptr<BasicTrajectoryCosts>;
     
@@ -119,6 +121,7 @@ namespace trajectory_based_nav
     std::string name() { return name_; }
   };
   
+  /*
   class TrajectoryCostsContainer : BasicTrajectoryCosts
   {
   protected:
@@ -139,6 +142,7 @@ namespace trajectory_based_nav
       return BasicTrajectoryCosts::cost();
     }
   };
+  */
   
   class WanderTrajectoryScoring : public TrajectoryScoring
   {

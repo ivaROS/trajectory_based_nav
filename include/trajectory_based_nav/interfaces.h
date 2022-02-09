@@ -17,6 +17,7 @@
 //#include <pips_msgs/PathArray.h>
 #include <ros/ros.h>
 #include <memory>
+#include <type_traits>
 
 namespace trajectory_based_nav
 {
@@ -31,10 +32,36 @@ namespace trajectory_based_nav
 
   struct TrajectoryCosts
   {
-    virtual double cost()=0;
+    virtual double cost() const=0;
     
+    //Methods that need to be defined in global namespace
+    virtual std::ostream& print(std::ostream& stream) const
+    {
+      stream << "Total Cost=[" << cost() << "]";
+      return stream;
+    }
+
     using Ptr=std::shared_ptr<TrajectoryCosts>;
   };
+  
+  //Methods that need to be defined in global namespace
+  inline
+  std::ostream& operator<< (std::ostream& stream, const TrajectoryCosts& costs)
+  {
+    return costs.print(stream);
+  }
+  
+//   template <class T, typename std::enable_if<std::is_base_of<TrajectoryCosts, T>::value>::type* = nullptr>
+//   std::ostream& operator<< (std::ostream& stream, const T& costs)
+//   {
+//     return costs.print(stream);
+//   }
+//   
+//   template <class T, typename std::enable_if<std::is_base_of<TrajectoryCosts, T>::value>::type* = nullptr>
+//   std::ostream& operator<< (std::ostream& stream, const T* costs)
+//   {
+//     return costs->print(stream);
+//   }
   
   struct CollisionCheckingResult
   {
