@@ -76,7 +76,7 @@ namespace trajectory_based_nav
         virtual bool start() override
         {
             RecoveryBehavior::start();
-            controller_->enable();
+            //controller_->enable();
             controller_->setTrajectory(getTrajectory());
             
             ROS_DEBUG_STREAM_NAMED(name_, "[" << name_ << "] sent a trajectory to the controller!");
@@ -87,7 +87,7 @@ namespace trajectory_based_nav
         {
             RecoveryBehavior::stop();
             controller_->stop();    //Ensures that robot doesn't continue to move if behavior needs to be terminated early for whatever reason
-            controller_->disable();
+            //controller_->disable();
             return true;
         }
         
