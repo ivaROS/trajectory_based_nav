@@ -134,6 +134,7 @@ add_library(${PROJECT_NAME}
   src/behavior_manager.cpp
   src/basic_replan_logic.cpp
   src/basic_trajectory_verifier.cpp
+  src/future_dated_trajectory_helper.cpp
 #  src/multi_level_cc_wrapper.cpp
 )
 
