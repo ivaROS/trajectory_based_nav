@@ -10,10 +10,10 @@ namespace trajectory_based_nav
     
     bool FutureDatedTrajectoryHelper::init(ros::NodeHandle nh, ros::NodeHandle pnh, tf2_utils::TransformManager tfm)
     {
-      double delay_duration = 1; //in seconds
+      double delay_duration = 0; //in seconds
       //set from pnh
       
-      pips::utils::get_param(pnh, "delay_duration", delay_duration);
+      pips::utils::get_param(pnh, "delay_duration", delay_duration, delay_duration, 10);
       
       delay_duration_ = ros::Duration(delay_duration);
       
