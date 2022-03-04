@@ -211,7 +211,7 @@ namespace trajectory_based_nav
                 visualization_msgs::MarkerArray markers;
                 
                 
-                visualization_msgs::Marker clearing_marker, label_marker, score_marker;
+                visualization_msgs::Marker clearing_marker, label_marker, score_marker, path_marker;
                 clearing_marker.ns = "labels";
                 clearing_marker.action = visualization_msgs::Marker::DELETEALL;
                 markers.markers.push_back(clearing_marker);
@@ -247,8 +247,24 @@ namespace trajectory_based_nav
                 score_marker.color.g=1;
                 score_marker.color.b=1;
                 
+                path_marker.ns = "candidate_trajs";
+                path_marker.type = visualization_msgs::Marker::LINE_STRIP;
+                
                 label_marker.header = odom.header;
                 score_marker.header = odom.header;
+                path_marker.header = odom.header;
+                
+                std_msgs::ColorRGBA current_traj_color, waypoint_traj_color, local_traj_color, local_goal_traj_color;
+                current_traj_color.a = waypoint_traj_color.a = local_traj_color.a = local_goal_traj_color.a = 0.5;
+                current_traj_color.r=current_traj_color.b=1;  //yellow
+                waypoint_traj_color.r=0.64; //dark red
+                local_traj_color.r=0.5; //tan
+                local_traj_color.g=0.3;
+                
+                local_goal_traj_color.r=local_goal_traj_color.g=0.62;
+                local_goal_traj_color.b = 0.91;
+                
+                path_marker.scale.x = 0.015;
                 
                 int ind = 0;
                 for(const auto& traj : candidate_trajs)
@@ -265,6 +281,38 @@ namespace trajectory_based_nav
                     markers.markers.push_back(label_marker);
                     label_marker.id++;
                     ind++;
+
+                    {
+                      std::string source = traj->getSource();
+                      if(source == "local_goal")
+                      {
+                        continue;
+                        path_marker.color = local_goal_traj_color;
+                      }
+                      else if(source == "end_point")
+                      {
+                        path_marker.color = waypoint_traj_color;
+                      }
+                      else if(source == "local_search")
+                      {
+                        //continue;
+                        path_marker.color = local_traj_color;
+                      }
+                      else if(traj == remaining_traj)
+                      {
+                        continue;
+                        path_marker.color = current_traj_color;
+                      }
+                      
+                      path_marker.points.clear();
+                      for(const auto& pose : traj->getPoseArray().poses)
+                      {
+                        path_marker.points.push_back(pose.position);
+                      }
+                      
+                      markers.markers.push_back(path_marker);
+                      path_marker.id++;
+                    }
                 }
                 
                 viz_pub_.publish(markers);
