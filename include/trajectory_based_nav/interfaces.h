@@ -82,6 +82,11 @@ namespace trajectory_based_nav
       return costs;
     }
     
+    virtual std::string getSource() const
+    {
+      return "";
+    }
+    
     virtual bool trim(unsigned int size)=0;
     
     virtual geometry_msgs::PoseArray getPoseArray() const =0;
