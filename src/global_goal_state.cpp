@@ -61,9 +61,9 @@ namespace trajectory_based_nav
        * 1. Always plan in the odometry frame and set it automatically based on first message received.
        * 2. Transform poses to the specified planning frame whenever needed.
        */
-      pips::utils::searchParam(ppnh, "planning_frame_id", planning_frame_id_, "odom", -1);
+      pips::utils::searchParam(ppnh, "planning_frame_id", planning_frame_id_, "world", 100);
       
-      pips::utils::searchParam(ppnh, "fixed_frame_id", fixed_frame_id_, "map", -1);
+      pips::utils::searchParam(ppnh, "fixed_frame_id", fixed_frame_id_, "world", 100);
       
       //goal_sub_.subscribe(nh, "/move_base_simple/goal", 1);
       
@@ -106,7 +106,7 @@ namespace trajectory_based_nav
     
     void GlobalGoalState::setNewGoal(const geometry_msgs::PoseStamped::ConstPtr& goal)
     {
-      ROS_INFO_STREAM_NAMED("global_goal_state", "[GlobalGoalState] received a new goal");
+      ROS_INFO_STREAM_NAMED("global_goal_state.set_new_goal", "[GlobalGoalState] received a new goal [" << *goal << "]");
       pass_through_filter_.add(goal);
     }
     
@@ -124,6 +124,7 @@ namespace trajectory_based_nav
       {
         //planning_frame_goal_ = tfm_.getBuffer()->transform(*goal_pose_, planning_frame_id_);
         planning_frame_goal_ = tfm_.getBuffer()->transform(*goal_pose_, planning_frame_id_, ros::Time(0), fixed_frame_id_);
+        ROS_DEBUG_STREAM_NAMED("global_goal_state.update_goal_transform", "[GlobalGoalState] updated planning frame goal [" << planning_frame_goal_ << "]");
         
         return true;
       }

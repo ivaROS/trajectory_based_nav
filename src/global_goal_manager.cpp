@@ -15,6 +15,8 @@ namespace trajectory_based_nav
         //Modified from move_base.cpp
         bool GlobalGoalManager::init(ros::NodeHandle nh, ros::NodeHandle pnh)
         {
+            ROS_INFO_STREAM_NAMED("global_goal_manager.init", "Started initializing GlobalGoalManager");
+
             as_ = std::make_shared<MoveBaseActionServer>(nh, "move_base", false); //, boost::bind(&GlobalGoalManager::executeCb, this, _1), false);
             as_->registerGoalCallback(boost::bind(&GlobalGoalManager::ActionGoalCB, this));
             
@@ -59,6 +61,7 @@ namespace trajectory_based_nav
             goal_sub_ = simple_nh.subscribe<geometry_msgs::PoseStamped>("goal", 1, boost::bind(&GlobalGoalManager::goalCB, this, _1));
             
             as_->start(); //TODO: should this be moved before starting subscriber?
+            ROS_INFO_STREAM_NAMED("global_goal_manager.init", "Finished initializing GlobalGoalManager");
             return true;
         }
         
