@@ -49,17 +49,19 @@ namespace trajectory_based_nav
     
     virtual bool getRobotPose(geometry_msgs::PoseStamped& start)=0;
     
+    using Ptr = std::shared_ptr<GlobalPlannerInterface<T> >;
   };
   
   
   template <typename T>
-  class CostmapBasedGlobalPlannerInterface : GlobalPlannerInterface<T>
+  class CostmapBasedGlobalPlannerInterface : public GlobalPlannerInterface<T>
   {
   protected:
     tf2_utils::TransformManager tfm_;
     costmap_2d::Costmap2DROS costmap_;
     
   public:
+    using Ptr = std::shared_ptr<CostmapBasedGlobalPlannerInterface<T> >;
     //using planner_result_t = T;
     
     CostmapBasedGlobalPlannerInterface(tf2_utils::TransformManager tfm = tf2_utils::TransformManager(true)):
@@ -183,6 +185,7 @@ namespace trajectory_based_nav
     
   protected:
     typename T::Ptr planner_;
+    //typename T::Ptr planner_;
     using planner_result_t = typename T::planner_result_t;
     
     typedef boost::mutex::scoped_lock Lock;
@@ -203,8 +206,10 @@ namespace trajectory_based_nav
     
   public:
     
-    TypedGlobalPlanningInterface(const GlobalGoalState::Ptr& ggs, const typename T::Ptr& planner, std::string name):
+    //template <typename S>
+    TypedGlobalPlanningInterface(const GlobalGoalState::Ptr& ggs, typename T::Ptr planner, std::string name):
       GlobalPlanningInterface(ggs, name),
+      //planner_(std::dynamic_pointer_cast<trajectory_based_nav::GlobalPlannerInterface<T> >(planner)),
       planner_(planner),
       run_planner_(false),
       planning_in_progress_(false)
@@ -374,19 +379,22 @@ namespace trajectory_based_nav
 //     virtual geometry_msgs::PoseStamped start() const { return start_; }
 //     
     
-    
+    using Ptr = std::shared_ptr<BasicPlanningResult>;
+    using ConstPtr = std::shared_ptr<const BasicPlanningResult>;
   };
   
   struct PathPlanningResult : public BasicPlanningResult
   {
   public:
-    std::vector<geometry_msgs::PoseStamped> path;
+    std::vector<geometry_msgs::PoseStamped> path; //TODO: use shared_ptr
     
 //   public:
 //     virtual const std::vector<geometry_msgs::PoseStamped>& getPath() const
 //     {
 //       return path;
 //     }
+    using Ptr = std::shared_ptr<PathPlanningResult>;
+    using ConstPtr = std::shared_ptr<const PathPlanningResult>;
   };
   
   

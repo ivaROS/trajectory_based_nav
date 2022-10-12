@@ -53,7 +53,7 @@ namespace trajectory_based_nav
       }
     }
     
-    bool GlobalGoalState::init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm)
+    bool GlobalGoalState::init(ros::NodeHandle nh, ros::NodeHandle pnh, tf2_utils::TransformManager tfm)
     {
       ros::NodeHandle ppnh(pnh, "global_goal_state");
       tfm_ = tfm;

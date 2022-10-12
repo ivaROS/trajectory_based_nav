@@ -53,7 +53,7 @@ namespace trajectory_based_nav
       
     }
     
-    virtual bool shouldReplan(const nav_msgs::Odometry& odom, TrajectoryWrapper::Ptr traj)
+    virtual bool shouldReplan(const nav_msgs::Odometry& odom, TrajectoryWrapper::Ptr traj) override
     {
       if(ggs_->hasNewGoal())
       {

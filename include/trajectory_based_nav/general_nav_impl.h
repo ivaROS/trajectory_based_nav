@@ -144,7 +144,10 @@ namespace trajectory_based_nav
             auto t1 = ros::WallTime::now();
             
             //TODO: do something with the return value of trajectory source, eg: bool traj_source_result = 
-            lp_->getTrajectorySource()->update(odom, *remaining_traj);
+            if(!lp_->getTrajectorySource()->update(odom, *remaining_traj))
+            {
+                //return data;
+            }
             
             
             auto candidate_trajs = std::vector<typename TypedTrajectoryWrapper<T>::Ptr>();
@@ -253,7 +256,8 @@ namespace trajectory_based_nav
                 label_marker.header = odom.header;
                 score_marker.header = odom.header;
                 path_marker.header = odom.header;
-                
+                path_marker.pose.orientation.w = 1;
+
                 std_msgs::ColorRGBA current_traj_color, waypoint_traj_color, local_traj_color, local_goal_traj_color;
                 current_traj_color.a = waypoint_traj_color.a = local_traj_color.a = local_goal_traj_color.a = 0.5;
                 current_traj_color.r=current_traj_color.b=1;  //yellow
@@ -293,7 +297,7 @@ namespace trajectory_based_nav
                       {
                         path_marker.color = waypoint_traj_color;
                       }
-                      else if(source == "local_search")
+                      else if(source == "local_search" || source == "end_point_big_gap")
                       {
                         //continue;
                         path_marker.color = local_traj_color;
@@ -332,87 +336,87 @@ namespace trajectory_based_nav
               */
               auto t4 = ros::WallTime::now();
           
-          int traj_count=0;
-          {
-              std::stringstream ss;
-              
-              typename TypedTrajectoryWrapper<T>::Ptr selected_traj;
-              for(auto traj : candidate_trajs)
-              {
-                  double traj_cost = traj->cost();
-                  if(traj_cost == std::numeric_limits<double>::max())
-                  {
-                      ROS_INFO_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is fatal.");
-                      break;
-                  }
-                  else
-                  {
-                      ROS_DEBUG_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is not fatal.");
-                  }
+            int traj_count=0;
+            {
+                std::stringstream ss;
                 
-                  ss << "#" << traj_count;
-                  if(traj == remaining_traj)
-                  {
-                      ss << "(C)";
-                  }
+                typename TypedTrajectoryWrapper<T>::Ptr selected_traj;
+                for(auto traj : candidate_trajs)
+                {
+                    double traj_cost = traj->cost();
+                    if(traj_cost == std::numeric_limits<double>::max())
+                    {
+                        ROS_INFO_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is fatal.");
+                        break;
+                    }
+                    else
+                    {
+                        ROS_DEBUG_STREAM_NAMED("general_nav_impl.selection", "Trajectory cost (" << traj_cost << ") is not fatal.");
+                    }
                   
-                  ss << ": " << *(traj->getCosts());
+                    ss << "#" << traj_count;
+                    if(traj == remaining_traj)
+                    {
+                        ss << "(C)";
+                    }
+                    
+                    ss << ": " << *(traj->getCosts());
+                  
+                    traj_count++;
+                    if(lp_->getTrajectoryVerifier()->verifyTrajectory(traj))
+                    {
+                        ss << " PASSED";
+                        selected_traj = traj;
+                        break;
+                    }
+                    ss << " FAILED\n";
+                    
+                }
                 
-                  traj_count++;
-                  if(lp_->getTrajectoryVerifier()->verifyTrajectory(traj))
-                  {
-                      ss << " PASSED";
-                      selected_traj = traj;
-                      break;
-                  }
-                  ss << " FAILED\n";
-                  
-              }
-              
-              ROS_DEBUG_STREAM_NAMED("general_nav_impl.selection.details", "Trajectory Details:\n" << ss.str());
-              
-              if(selected_traj)
-              {
-                  data.trajectory = selected_traj;
-                  if(selected_traj != remaining_traj)
-                  {
-                      typename T::ConstPtr trajectory_msg = selected_traj->getTrajectoryMsg();
-                      lp_->getTrajectoryController()->setTrajectory(trajectory_msg);
-                      
-                      selected_traj_pub_.publish(selected_traj->getPoseArray());
-                      ROS_INFO_STREAM("Selected new trajectory! Trajectory cost=" << selected_traj->cost());
-                      data.trajectory_type=PlanningData::TrajectoryType::NEW;
-                  }
-                  else
-                  {
-                      ROS_INFO_STREAM("Continuing on previous trajectory.");
-                      data.trajectory_type=PlanningData::TrajectoryType::PREVIOUS;
-                  }
-              }
-              else
-              {
-                  ROS_WARN_STREAM("No valid trajectory found, stopping!");
-                  lp_->getTrajectoryController()->stop();
-                  data.trajectory_type=PlanningData::TrajectoryType::NONE;
-              }
-          }
+                ROS_DEBUG_STREAM_NAMED("general_nav_impl.selection.details", "Trajectory Details:\n" << ss.str());
+                
+                if(selected_traj)
+                {
+                    data.trajectory = selected_traj;
+                    if(selected_traj != remaining_traj)
+                    {
+                        typename T::ConstPtr trajectory_msg = selected_traj->getTrajectoryMsg();
+                        lp_->getTrajectoryController()->setTrajectory(trajectory_msg);
+                        
+                        selected_traj_pub_.publish(selected_traj->getPoseArray());
+                        ROS_INFO_STREAM("Selected new trajectory! Trajectory cost=" << selected_traj->cost());
+                        data.trajectory_type=PlanningData::TrajectoryType::NEW;
+                    }
+                    else
+                    {
+                        ROS_INFO_STREAM("Continuing on previous trajectory.");
+                        data.trajectory_type=PlanningData::TrajectoryType::PREVIOUS;
+                    }
+                }
+                else
+                {
+                    ROS_WARN_STREAM("No valid trajectory found, stopping!");
+                    lp_->getTrajectoryController()->stop();
+                    data.trajectory_type=PlanningData::TrajectoryType::NONE;
+                }
+            }
+            
+            lp_->getReplanLogic()->setPlanningData(data);
+            
+            auto t5 = ros::WallTime::now();
+            
+            ROS_INFO_STREAM_NAMED("timing","Total: " << (t5-t0).toSec()*1000 << "ms, Replan logic: " << (t1-t01).toSec()*1000 << "ms, Init2: " << (t01-t0).toSec()*1000 << "ms, Generation: " << (t2-t1).toSec() * 1000 << "ms, Scoring: " <<  (t3-t2).toSec() * 1000 << "ms, Other: " <<  (t4-t3).toSec() * 1000 << "ms, Collision checking: " <<   (t5-t4).toSec() * 1000 << "ms");
+            
+            ROS_DEBUG_STREAM_NAMED("timing.statistics", "STATISTICS: {\"total_planning_time\":" << (ros::WallTime::now()-t0).toNSec() / 1e3 << ",\"planned\":true, \"num_collision_checked\":" << traj_count << ",\"generation_time\":" << (t2-t1).toNSec() / 1000 << ",\"scoring_time\":" << (t3-t2).toNSec()/1000 << ",\"verification_time\":" << (t5-t4).toNSec()/1000 << ",\"num_trajectories\":" << candidate_trajs.size() << "}");
           
-          lp_->getReplanLogic()->setPlanningData(data);
-          
-          auto t5 = ros::WallTime::now();
-          
-          ROS_INFO_STREAM_NAMED("timing","Total: " << (t5-t0).toSec()*1000 << "ms, Replan logic: " << (t1-t01).toSec()*1000 << "ms, Init2: " << (t01-t0).toSec()*1000 << "ms, Generation: " << (t2-t1).toSec() * 1000 << "ms, Scoring: " <<  (t3-t2).toSec() * 1000 << "ms, Other: " <<  (t4-t3).toSec() * 1000 << "ms, Collision checking: " <<   (t5-t4).toSec() * 1000 << "ms");
-          
-          ROS_DEBUG_STREAM_NAMED("timing.statistics", "STATISTICS: {\"total_planning_time\":" << (ros::WallTime::now()-t0).toNSec() / 1e3 << ",\"planned\":true, \"num_collision_checked\":" << traj_count << ",\"generation_time\":" << (t2-t1).toNSec() / 1000 << ",\"scoring_time\":" << (t3-t2).toNSec()/1000 << ",\"verification_time\":" << (t5-t4).toNSec()/1000 << ",\"num_trajectories\":" << candidate_trajs.size() << "}");
-          
-          }
-          else
-          {
-              ROS_DEBUG_STREAM_NAMED("timing", "STATISTICS: {\"total_planning_time\":" << (ros::WallTime::now()-t0).toNSec() / 1e3 << ",\"planned\":false}");
-          }
-          
-          return data;
-      }
+        }
+        else
+        {
+            ROS_DEBUG_STREAM_NAMED("timing", "STATISTICS: {\"total_planning_time\":" << (ros::WallTime::now()-t0).toNSec() / 1e3 << ",\"planned\":false}");
+        }
+        
+        return data;
+    }
   
 } //end namespace trajectory_based_nav
 

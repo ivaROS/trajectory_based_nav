@@ -3,6 +3,7 @@
 
 #include <trajectory_based_nav/global_planning_interface.h>
 #include <global_planner_plus/PotentialGrid.h>
+#include <global_planner_plus/global_potentials_interface.h>
 //#include <trajectory_based_nav/default_implementations.h>
 //#include <trajectory_based_nav/interfaces.h>
 #include <boost/thread/mutex.hpp>

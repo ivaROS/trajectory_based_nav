@@ -47,7 +47,7 @@ namespace trajectory_based_nav
     virtual void GoalCallback(const geometry_msgs::PoseStamped::ConstPtr& goal);
     
   public:
-    virtual bool init(ros::NodeHandle& nh, ros::NodeHandle& pnh, tf2_utils::TransformManager tfm);
+    virtual bool init(ros::NodeHandle nh, ros::NodeHandle pnh, tf2_utils::TransformManager tfm);
     
 //     virtual bool update(const nav_msgs::Odomeetry& odom);
 
